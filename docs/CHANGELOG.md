@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.4.0
+
+- Optimización controlada de Riesgo, Stop Loss y Take Profit.
+- Grilla deliberadamente acotada para reducir curve fitting.
+- Función objetivo penalizada por drawdown y pocas operaciones.
+- Parámetros seleccionados exclusivamente con In-Sample.
+- Evaluación final de la configuración congelada sobre Out-of-Sample.
+- Nueva pestaña `Optimización controlada`.
+- Exportación de resultados de validación a CSV.
+- Maven y packaging actualizados a 1.4.0.
+- README y Manual actualizados.
+
+## 1.3.0
+
+- Capa de robustez temporal.
+- Score de Robustez 0–100.
+- Clasificación `ROBUSTA / DUDOSA / SOBREAJUSTADA`.
+- La clasificación combina resultado OOS, consistencia Walk-Forward, Buy & Hold y drawdown.
+- Explicación textual por estrategia.
+- El score de robustez no representa probabilidad de ganancia.
+
+## 1.2.0
+
+- Validación Out-of-Sample.
+- División cronológica aproximada 70% In-Sample / 30% OOS.
+- Comparación del retorno OOS contra Buy & Hold OOS.
+- El tramo OOS queda fuera de la selección de parámetros.
+- Indicadores recalculados sobre copias aisladas de cada tramo.
+
+## 1.1.0
+
+- Nuevo laboratorio `Validación`.
+- Walk-Forward temporal con hasta tres folds.
+- En cada fold, Riesgo/Stop/Take se seleccionan usando únicamente el tramo de entrenamiento.
+- Los parámetros quedan congelados al evaluar el bloque siguiente.
+- Se informa retorno Walk-Forward medio y cantidad de folds positivos.
+- La validación se ejecuta en un Task en segundo plano para no bloquear JavaFX.
+- Requisito mínimo de 80 velas.
+
+
 ## 1.0.0
 
 ### Release base completa

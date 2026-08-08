@@ -2,12 +2,12 @@
 
 **IA-TradeX** es una aplicación de escritorio 100% Java para análisis técnico, backtesting, Scanner, Paper Trading y gestión automatizada de una cartera simulada.
 
-La v1.0.0 cierra la primera base funcional completa del proyecto. No envía órdenes reales y no requiere Python.
+La v1.4.0 extiende la base funcional con validación temporal y optimización controlada antes de incorporar Machine Learning. No envía órdenes reales y no requiere Python.
 
 ![Java](https://img.shields.io/badge/Java-21-blue)
 ![JavaFX](https://img.shields.io/badge/JavaFX-23-blue)
 ![License](https://img.shields.io/badge/License-AGPL--3.0-green)
-![Version](https://img.shields.io/badge/version-1.0.0-brightgreen)
+![Version](https://img.shields.io/badge/version-1.4.0-brightgreen)
 
 ## Qué incluye la v1.0.0
 
@@ -335,20 +335,101 @@ Más detalle en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - [Arquitectura](docs/ARCHITECTURE.md)
 - [QA v1.0.0](docs/QA.md)
 - [Notas de release 1.0.0](docs/RELEASE_1.0.0.md)
+- [Notas de release 1.4.0](docs/RELEASE_1.4.0.md)
 - [Changelog](docs/CHANGELOG.md)
+
+
+## Laboratorio de Validación · v1.1 a v1.4
+
+El botón **Validación** trabaja sobre el activo actualmente analizado y ejecuta cuatro capas.
+
+### v1.1 · Walk-Forward
+
+El histórico se divide cronológicamente en varios bloques.
+
+En cada fold:
+
+1. se usa únicamente el tramo pasado como entrenamiento;
+2. se selecciona una combinación acotada de Riesgo / Stop / Take dentro de ese tramo;
+3. esos parámetros se congelan;
+4. se evalúan sobre el bloque temporal siguiente.
+
+Los indicadores se recalculan de forma independiente para evitar reutilizar valores calculados con información futura.
+
+La tabla muestra el retorno medio Walk-Forward y cuántos folds terminaron positivos.
+
+### v1.2 · Out-of-Sample
+
+Aproximadamente el 70% inicial se usa como In-Sample y el 30% final queda reservado como Out-of-Sample.
+
+El tramo OOS no participa en la elección de parámetros de la optimización.
+
+Se comparan:
+
+- retorno In-Sample;
+- retorno OOS;
+- Buy & Hold OOS.
+
+### v1.3 · Robustez temporal
+
+IA-TradeX combina la evidencia OOS y Walk-Forward en un **Score de Robustez 0–100** y clasifica cada estrategia:
+
+- `ROBUSTA`;
+- `DUDOSA`;
+- `SOBREAJUSTADA`.
+
+Este score tampoco es una probabilidad de ganancia. Resume consistencia temporal dentro del activo y período analizados.
+
+La v1.3 evalúa robustez **temporal** del activo actual. La validación cruzada masiva entre muchos activos/mercados queda como una etapa posterior.
+
+### v1.4 · Optimización controlada
+
+Se prueba una grilla pequeña y explícita:
+
+```text
+Riesgo: 0,5% / 1,0% / 1,5%
+Stop:   1,5% / 2,0% / 2,5% / 3,0%
+Take:   3,0% / 4,0% / 5,0% / 6,0%
+```
+
+La selección penaliza drawdown y configuraciones con muy pocas operaciones.
+
+Después de seleccionar la mejor configuración **solo con entrenamiento**, se prueba sin cambios sobre OOS.
+
+La optimización no modifica todavía períodos de EMA, RSI ni reglas internas de las estrategias. Eso reduce el espacio de búsqueda y el riesgo de curve fitting.
+
+### Requisito de datos
+
+El laboratorio exige al menos **80 velas**. Si el período seleccionado es demasiado corto, IA-TradeX pide elegir un histórico mayor.
+
+### Exportación
+
+La validación puede exportarse a CSV con:
+
+- resultados In-Sample;
+- OOS;
+- Buy & Hold OOS;
+- Walk-Forward;
+- Score de Robustez;
+- clasificación;
+- parámetros optimizados;
+- resultado de esos parámetros en entrenamiento y OOS.
+
 
 ## Próximas etapas
 
-La v1.0.0 cierra la base funcional. Las siguientes etapas deberían concentrarse en validación antes de agregar ML:
+La v1.4.0 deja implementada la primera capa de validación temporal previa a ML.
 
-- walk-forward;
-- validación fuera de muestra;
-- análisis de robustez por períodos;
-- datos por WebSocket/streaming donde sea posible;
-- Machine Learning sobre datos y estrategias ya auditables;
+Siguientes candidatos:
+
+- validación masiva cruzada entre activos y mercados;
+- más folds y ventanas configurables;
+- Monte Carlo / bootstrap de operaciones;
+- datos por WebSocket/streaming donde la fuente lo permita;
+- Machine Learning sobre variables y resultados ya validados;
 - sentimiento/noticias;
 - explicabilidad de modelos;
-- integración opcional con brokers en una etapa posterior y con controles específicos.
+- integración opcional con brokers en una etapa posterior.
 
 ## Acerca de
 

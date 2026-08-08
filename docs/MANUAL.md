@@ -1,4 +1,4 @@
-# Manual de usuario · IA-TradeX v1.0.0
+# Manual de usuario · IA-TradeX v1.4.0
 
 Este manual está pensado para una persona sin experiencia previa en trading.
 
@@ -623,7 +623,7 @@ Antes de agregar ML conviene implementar:
 
 ## 27. Acerca de
 
-**IA-TradeX v1.0.0**
+**IA-TradeX v1.4.0**
 
 **Autor:** Juan Manuel De Castro  
 **Email:** jm@pronexo.com  
@@ -634,3 +634,109 @@ Licencia:
 ```text
 GNU AGPL v3.0
 ```
+
+
+## 28. Validación de estrategias
+
+Primero ejecutá un análisis normal y luego presioná **Validación**.
+
+El laboratorio usa el activo, timeframe y período actualmente cargados.
+
+Se recomiendan períodos suficientemente largos. IA-TradeX exige al menos 80 velas.
+
+### Walk-Forward
+
+Walk-Forward intenta responder:
+
+> ¿La estrategia sigue funcionando cuando los parámetros se eligen usando solamente el pasado y se prueban en un período posterior?
+
+Para cada fold, IA-TradeX selecciona Riesgo, Stop y Take con el tramo de entrenamiento y luego congela esos valores durante la validación siguiente.
+
+### Out-of-Sample
+
+El histórico se separa aproximadamente:
+
+```text
+70% In-Sample
+30% Out-of-Sample
+```
+
+El OOS funciona como examen final y no participa en la búsqueda de parámetros.
+
+### Robustez
+
+La tabla muestra:
+
+- In-Sample;
+- OOS;
+- Buy & Hold OOS;
+- retorno medio Walk-Forward;
+- folds Walk-Forward positivos;
+- Score de Robustez;
+- clasificación;
+- explicación.
+
+Clasificaciones:
+
+**ROBUSTA**  
+El OOS fue positivo y la mayoría de los folds Walk-Forward sostuvo un comportamiento compatible.
+
+**DUDOSA**  
+La evidencia es mixta o insuficiente.
+
+**SOBREAJUSTADA**  
+El buen resultado del entrenamiento no se sostuvo fuera de muestra.
+
+Estas etiquetas son reglas de diagnóstico, no garantías.
+
+### Optimización controlada
+
+La pestaña **Optimización controlada** muestra para cada estrategia:
+
+- Riesgo seleccionado;
+- Stop seleccionado;
+- Take seleccionado;
+- retorno en entrenamiento;
+- retorno OOS;
+- Buy & Hold OOS;
+- cantidad de operaciones Train/OOS;
+- clasificación.
+
+La grilla es deliberadamente pequeña para reducir el riesgo de encontrar una combinación espectacular por casualidad.
+
+### Exportar validación
+
+Presioná:
+
+```text
+Exportar validación CSV
+```
+
+El archivo puede utilizarse para comparar resultados externamente.
+
+## 29. Qué cambió entre v1.0 y v1.4
+
+### v1.1
+Walk-Forward con parámetros seleccionados únicamente en cada tramo de entrenamiento.
+
+### v1.2
+Out-of-Sample reservado cronológicamente.
+
+### v1.3
+Score y clasificación de robustez temporal.
+
+### v1.4
+Optimización controlada de Riesgo / Stop / Take y evaluación posterior sobre OOS.
+
+## 30. Antes de Machine Learning
+
+La salida `ROBUSTA` no significa que una estrategia deba utilizarse con dinero real.
+
+Antes de ML y, especialmente, antes de cualquier integración real, sigue siendo conveniente sumar:
+
+- validación cruzada en muchos activos;
+- más períodos;
+- Monte Carlo;
+- sensibilidad a costos;
+- pruebas con datos nuevos acumulados en el tiempo.
+

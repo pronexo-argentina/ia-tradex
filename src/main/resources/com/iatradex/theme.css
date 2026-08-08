@@ -1034,3 +1034,34 @@
 .performance-table {
     -fx-font-size: 11px;
 }
+
+
+/* v1.4.0 validation laboratory */
+.validation-root {
+    -fx-background-color: #0d141c;
+}
+
+.validation-status {
+    -fx-text-fill: #9db0c0;
+    -fx-font-size: 11px;
+}
+
+.validation-summary {
+    -fx-background-color: #111b25;
+    -fx-border-color: #273746;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 10px 12px;
+    -fx-text-fill: #e8eef4;
+    -fx-font-weight: 800;
+}
+
+.validation-help {
+    -fx-text-fill: #9fb1c1;
+    -fx-font-size: 11px;
+}
+
+.validation-table,
+.optimization-table {
+    -fx-font-size: 11px;
+}

@@ -1,4 +1,4 @@
-# Arquitectura de IA-TradeX v1.0.0
+# Arquitectura de IA-TradeX v1.4.0
 
 IA-TradeX es una aplicación de escritorio 100% Java.
 
@@ -110,3 +110,20 @@ macOS:
 ./package-macos.sh
 ./package-macos-dmg.sh
 ```
+
+
+### Validación
+
+`com.iatradex.validation`
+
+Responsable de:
+
+- Walk-Forward;
+- Out-of-Sample;
+- robustez temporal;
+- optimización controlada;
+- exportación CSV de validaciones.
+
+Cada slice temporal se copia a nuevos objetos `Candle` y vuelve a pasar por `IndicatorEngine`, evitando reutilizar indicadores calculados sobre la serie completa.
+
+La búsqueda de parámetros de v1.4 se limita a Riesgo/Stop/Take y nunca utiliza el tramo OOS para seleccionar la configuración.

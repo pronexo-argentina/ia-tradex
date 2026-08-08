@@ -23,6 +23,10 @@ import com.iatradex.paper.PaperPortfolioAutoEngine;
 import com.iatradex.paper.PaperPosition;
 import com.iatradex.paper.PaperRefreshResult;
 import com.iatradex.paper.PaperTradingService;
+import com.iatradex.validation.ValidationEngine;
+import com.iatradex.validation.ValidationReport;
+import com.iatradex.validation.ValidationRow;
+import com.iatradex.validation.OptimizationResult;
 import com.iatradex.paper.PaperPerformanceAnalyzer;
 import com.iatradex.paper.PaperPerformanceStat;
 import com.iatradex.paper.PaperPerformanceSummary;
@@ -37,6 +41,8 @@ import com.iatradex.ui.PaperHistoryRow;
 import com.iatradex.ui.PaperAutoLogRow;
 import com.iatradex.ui.PaperPositionRow;
 import com.iatradex.ui.PaperPerformanceRow;
+import com.iatradex.ui.ValidationRowView;
+import com.iatradex.ui.OptimizationRowView;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.animation.KeyFrame;
@@ -83,6 +89,7 @@ public final class IaTradexApp extends Application {
     private final PaperAutoTradingEngine paperAutoTradingEngine = new PaperAutoTradingEngine(analysisService, marketService, paperTradingService);
     private final PaperPortfolioAutoEngine paperPortfolioAutoEngine = new PaperPortfolioAutoEngine(scannerEngine, watchlistService, marketService, paperTradingService);
     private final PaperPerformanceAnalyzer paperPerformanceAnalyzer = new PaperPerformanceAnalyzer();
+    private final ValidationEngine validationEngine = new ValidationEngine();
 
     private final ComboBox<String> marketBox = new ComboBox<>();
     private final ComboBox<String> sourceBox = new ComboBox<>();
@@ -141,6 +148,7 @@ public final class IaTradexApp extends Application {
     private final Button paperTradingButton = new Button("Paper Trading");
     private final Button scannerButton = new Button("Scanner");
     private final Button performanceButton = new Button("Performance");
+    private final Button validationButton = new Button("Validación");
 
     private final DateTimeFormatter chartDate =
             DateTimeFormatter.ofPattern("dd/MM")
@@ -218,7 +226,7 @@ public final class IaTradexApp extends Application {
                         .toExternalForm()
         );
 
-        stage.setTitle("IA-TradeX v1.0.0");
+        stage.setTitle("IA-TradeX v1.4.0");
 
         try {
             stage.getIcons().add(
@@ -534,10 +542,14 @@ public final class IaTradexApp extends Application {
         performanceButton.getStyleClass().add("secondary-button");
         performanceButton.setOnAction(e -> showPerformance());
 
+        validationButton.getStyleClass().add("secondary-button");
+        validationButton.setOnAction(e -> showValidation());
+
         matchTopControlHeight(
                 analyzeButton,
                 scannerButton,
                 performanceButton,
+                validationButton,
                 paperTradingButton
         );
 
@@ -573,6 +585,7 @@ public final class IaTradexApp extends Application {
                 analyzeButton,
                 scannerButton,
                 performanceButton,
+                validationButton,
                 paperTradingButton
         );
 
@@ -1628,7 +1641,7 @@ public final class IaTradexApp extends Application {
         title.getStyleClass().add("about-title");
 
         Label subtitle = new Label(
-                "Análisis de mercados y backtesting · 100% Java · v1.0.0"
+                "Análisis de mercados y backtesting · 100% Java · v1.4.0"
         );
         subtitle.getStyleClass().add("about-subtitle");
 
@@ -1743,6 +1756,544 @@ public final class IaTradexApp extends Application {
         }
 
         dialog.showAndWait();
+    }
+
+    private void showValidation() {
+        if (currentAnalysis == null) {
+            Alert alert = new Alert(
+                    Alert.AlertType.INFORMATION,
+                    "Primero analizá un activo en la pantalla principal.",
+                    ButtonType.OK
+            );
+            alert.setTitle("Validación");
+            alert.setHeaderText(
+                    "No hay un análisis para validar"
+            );
+            alert.showAndWait();
+            return;
+        }
+
+        Stage window = new Stage();
+        window.initModality(Modality.NONE);
+        window.setTitle("IA-TradeX · Validación");
+
+        Label title = new Label(
+                "Validación de estrategias"
+        );
+        title.getStyleClass().add("paper-title");
+
+        Label subtitle = new Label(
+                currentAnalysis.symbol()
+                        + " · "
+                        + currentAnalysis.timeframe()
+                        + " · "
+                        + currentAnalysis.period()
+                        + " · Walk-Forward + OOS + Robustez + Optimización"
+        );
+        subtitle.getStyleClass().add("paper-subtitle");
+
+        Label statusLabel = new Label(
+                "Preparado para validar."
+        );
+        statusLabel.getStyleClass().add(
+                "validation-status"
+        );
+
+        ProgressIndicator progress =
+                new ProgressIndicator();
+        progress.setPrefSize(28, 28);
+        progress.setVisible(false);
+
+        Button runButton = new Button(
+                "Ejecutar validación"
+        );
+        runButton.getStyleClass().add(
+                "primary-button"
+        );
+
+        Button exportButton = new Button(
+                "Exportar validación CSV"
+        );
+        exportButton.getStyleClass().add(
+                "secondary-button"
+        );
+        exportButton.setDisable(true);
+
+        final ValidationReport[] lastReport =
+                new ValidationReport[1];
+
+        TableView<ValidationRowView> validationTable =
+                createValidationTable();
+
+        TableView<OptimizationRowView> optimizationTable =
+                createOptimizationTable();
+
+        Label splitInfo = new Label(
+                "El tramo Out-of-Sample usa aproximadamente el 30% final "
+                        + "del histórico y no interviene en la elección de parámetros."
+        );
+        splitInfo.setWrapText(true);
+        splitInfo.getStyleClass().add("paper-note");
+
+        Label robustnessHelp = new Label(
+                "Clasificación: ROBUSTA = evidencia OOS y Walk-Forward consistente; "
+                        + "DUDOSA = evidencia mixta; SOBREAJUSTADA = el resultado "
+                        + "del entrenamiento no se sostuvo fuera de muestra."
+        );
+        robustnessHelp.setWrapText(true);
+        robustnessHelp.getStyleClass().add(
+                "validation-help"
+        );
+
+        Label optimizationHelp = new Label(
+                "Optimización controlada: prueba una grilla pequeña de Riesgo, Stop y Take "
+                        + "solo en el tramo de entrenamiento. La configuración elegida se "
+                        + "evalúa después sobre el tramo OOS sin volver a ajustarse."
+        );
+        optimizationHelp.setWrapText(true);
+        optimizationHelp.getStyleClass().add(
+                "validation-help"
+        );
+
+        Label summary = new Label(
+                "Todavía no se ejecutó la validación."
+        );
+        summary.setWrapText(true);
+        summary.getStyleClass().add(
+                "validation-summary"
+        );
+
+        Tab validationTab = new Tab(
+                "Walk-Forward / OOS",
+                new VBox(
+                        10,
+                        robustnessHelp,
+                        validationTable
+                )
+        );
+        validationTab.setClosable(false);
+
+        Tab optimizationTab = new Tab(
+                "Optimización controlada",
+                new VBox(
+                        10,
+                        optimizationHelp,
+                        optimizationTable
+                )
+        );
+        optimizationTab.setClosable(false);
+
+        TabPane tabs = new TabPane(
+                validationTab,
+                optimizationTab
+        );
+        tabs.setTabClosingPolicy(
+                TabPane.TabClosingPolicy.UNAVAILABLE
+        );
+        VBox.setVgrow(tabs, Priority.ALWAYS);
+
+        Runnable runValidation = () -> {
+            if (runButton.isDisabled()) {
+                return;
+            }
+
+            runButton.setDisable(true);
+            progress.setVisible(true);
+            statusLabel.setText(
+                    "Recalculando indicadores y ejecutando pruebas sin look-ahead..."
+            );
+            validationTable.getItems().clear();
+            optimizationTable.getItems().clear();
+
+            AnalysisResult snapshot = currentAnalysis;
+
+            Task<ValidationReport> task = new Task<>() {
+                @Override
+                protected ValidationReport call() {
+                    return validationEngine.validate(
+                            snapshot
+                    );
+                }
+            };
+
+            task.setOnSucceeded(e -> {
+                ValidationReport report = task.getValue();
+                lastReport[0] = report;
+                exportButton.setDisable(false);
+
+                validationTable.setItems(
+                        FXCollections.observableArrayList(
+                                report.strategies()
+                                        .stream()
+                                        .map(ValidationRowView::new)
+                                        .toList()
+                        )
+                );
+
+                optimizationTable.setItems(
+                        FXCollections.observableArrayList(
+                                report.optimization()
+                                        .stream()
+                                        .map(OptimizationRowView::new)
+                                        .toList()
+                        )
+                );
+
+                long robust = report.strategies()
+                        .stream()
+                        .filter(row ->
+                                row.classification().name()
+                                        .equals("ROBUSTA")
+                        )
+                        .count();
+
+                long doubtful = report.strategies()
+                        .stream()
+                        .filter(row ->
+                                row.classification().name()
+                                        .equals("DUDOSA")
+                        )
+                        .count();
+
+                long overfit = report.strategies()
+                        .stream()
+                        .filter(row ->
+                                row.classification().name()
+                                        .equals("SOBREAJUSTADA")
+                        )
+                        .count();
+
+                summary.setText(
+                        "Velas: "
+                                + report.candles()
+                                + " · In-sample: "
+                                + report.inSampleCandles()
+                                + " · OOS: "
+                                + report.outOfSampleCandles()
+                                + " · ROBUSTAS: "
+                                + robust
+                                + " · DUDOSAS: "
+                                + doubtful
+                                + " · SOBREAJUSTADAS: "
+                                + overfit
+                );
+
+                statusLabel.setText(
+                        "Validación finalizada."
+                );
+
+                progress.setVisible(false);
+                runButton.setDisable(false);
+            });
+
+            task.setOnFailed(e -> {
+                Throwable error = task.getException();
+
+                statusLabel.setText(
+                        "ERROR · "
+                                + (
+                                error == null
+                                        ? "desconocido"
+                                        : error.getMessage()
+                        )
+                );
+
+                progress.setVisible(false);
+                runButton.setDisable(false);
+            });
+
+            Thread thread = new Thread(
+                    task,
+                    "strategy-validation"
+            );
+            thread.setDaemon(true);
+            thread.start();
+        };
+
+        runButton.setOnAction(e ->
+                runValidation.run()
+        );
+
+        exportButton.setOnAction(e -> {
+            ValidationReport report = lastReport[0];
+
+            if (report == null) {
+                return;
+            }
+
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle(
+                    "Exportar validación"
+            );
+            chooser.setInitialFileName(
+                    "ia-tradex-validacion-"
+                            + report.symbol()
+                            .replace("/", "-")
+                            .toLowerCase()
+                            + ".csv"
+            );
+            chooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter(
+                            "CSV",
+                            "*.csv"
+                    )
+            );
+
+            java.io.File file =
+                    chooser.showSaveDialog(window);
+
+            if (file == null) {
+                return;
+            }
+
+            try {
+                validationEngine.exportCsv(
+                        report,
+                        file.toPath()
+                );
+            } catch (Exception ex) {
+                showPaperError(ex.getMessage());
+            }
+        });
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox topActions = new HBox(
+                10,
+                statusLabel,
+                progress,
+                spacer,
+                exportButton,
+                runButton
+        );
+        topActions.setAlignment(Pos.CENTER_LEFT);
+
+        VBox root = new VBox(
+                12,
+                new VBox(2, title, subtitle),
+                splitInfo,
+                summary,
+                topActions,
+                tabs
+        );
+        root.setPadding(new Insets(18));
+        root.getStyleClass().addAll(
+                "paper-root",
+                "validation-root"
+        );
+
+        Scene scene = new Scene(
+                root,
+                1420,
+                820
+        );
+        scene.getStylesheets().add(
+                IaTradexApp.class
+                        .getResource("/com/iatradex/theme.css")
+                        .toExternalForm()
+        );
+
+        window.setScene(scene);
+        window.setMinWidth(980);
+        window.setMinHeight(650);
+
+        try {
+            window.getIcons().add(
+                    new Image(
+                            IaTradexApp.class.getResourceAsStream(
+                                    "/com/iatradex/icon.png"
+                            )
+                    )
+            );
+        } catch (Exception ignored) {
+        }
+
+        window.show();
+
+        Platform.runLater(
+                runValidation
+        );
+    }
+
+    private TableView<ValidationRowView> createValidationTable() {
+        TableView<ValidationRowView> table =
+                new TableView<>();
+
+        table.setColumnResizePolicy(
+                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
+        );
+        table.getStyleClass().add(
+                "validation-table"
+        );
+
+        TableColumn<ValidationRowView, String> strategy =
+                new TableColumn<>("Estrategia");
+        strategy.setCellValueFactory(v ->
+                v.getValue().strategyProperty()
+        );
+
+        TableColumn<ValidationRowView, String> train =
+                new TableColumn<>("In-Sample");
+        train.setCellValueFactory(v ->
+                v.getValue().inSampleProperty()
+        );
+
+        TableColumn<ValidationRowView, String> oos =
+                new TableColumn<>("OOS");
+        oos.setCellValueFactory(v ->
+                v.getValue().outSampleProperty()
+        );
+
+        TableColumn<ValidationRowView, String> buyHold =
+                new TableColumn<>("Buy & Hold OOS");
+        buyHold.setCellValueFactory(v ->
+                v.getValue().buyHoldProperty()
+        );
+
+        TableColumn<ValidationRowView, String> wf =
+                new TableColumn<>("WF medio");
+        wf.setCellValueFactory(v ->
+                v.getValue().walkForwardProperty()
+        );
+
+        TableColumn<ValidationRowView, String> folds =
+                new TableColumn<>("WF +");
+        folds.setCellValueFactory(v ->
+                v.getValue().foldsProperty()
+        );
+
+        TableColumn<ValidationRowView, String> score =
+                new TableColumn<>("Robustez");
+        score.setCellValueFactory(v ->
+                v.getValue().scoreProperty()
+        );
+
+        TableColumn<ValidationRowView, String> classification =
+                new TableColumn<>("Clasificación");
+        classification.setCellValueFactory(v ->
+                v.getValue().classificationProperty()
+        );
+
+        TableColumn<ValidationRowView, String> explanation =
+                new TableColumn<>("Explicación");
+        explanation.setCellValueFactory(v ->
+                v.getValue().explanationProperty()
+        );
+
+        strategy.setPrefWidth(135);
+        train.setPrefWidth(95);
+        oos.setPrefWidth(95);
+        buyHold.setPrefWidth(120);
+        wf.setPrefWidth(95);
+        folds.setPrefWidth(70);
+        score.setPrefWidth(90);
+        classification.setPrefWidth(125);
+        explanation.setPrefWidth(420);
+
+        table.getColumns().addAll(
+                strategy,
+                train,
+                oos,
+                buyHold,
+                wf,
+                folds,
+                score,
+                classification,
+                explanation
+        );
+
+        return table;
+    }
+
+    private TableView<OptimizationRowView> createOptimizationTable() {
+        TableView<OptimizationRowView> table =
+                new TableView<>();
+
+        table.setColumnResizePolicy(
+                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
+        );
+        table.getStyleClass().add(
+                "optimization-table"
+        );
+
+        TableColumn<OptimizationRowView, String> strategy =
+                new TableColumn<>("Estrategia");
+        strategy.setCellValueFactory(v ->
+                v.getValue().strategyProperty()
+        );
+
+        TableColumn<OptimizationRowView, String> risk =
+                new TableColumn<>("Riesgo");
+        risk.setCellValueFactory(v ->
+                v.getValue().riskProperty()
+        );
+
+        TableColumn<OptimizationRowView, String> stop =
+                new TableColumn<>("Stop");
+        stop.setCellValueFactory(v ->
+                v.getValue().stopProperty()
+        );
+
+        TableColumn<OptimizationRowView, String> take =
+                new TableColumn<>("Take");
+        take.setCellValueFactory(v ->
+                v.getValue().takeProperty()
+        );
+
+        TableColumn<OptimizationRowView, String> train =
+                new TableColumn<>("Training");
+        train.setCellValueFactory(v ->
+                v.getValue().trainProperty()
+        );
+
+        TableColumn<OptimizationRowView, String> validation =
+                new TableColumn<>("OOS");
+        validation.setCellValueFactory(v ->
+                v.getValue().validationProperty()
+        );
+
+        TableColumn<OptimizationRowView, String> buyHold =
+                new TableColumn<>("Buy & Hold OOS");
+        buyHold.setCellValueFactory(v ->
+                v.getValue().buyHoldProperty()
+        );
+
+        TableColumn<OptimizationRowView, String> trades =
+                new TableColumn<>("Ops Train/OOS");
+        trades.setCellValueFactory(v ->
+                v.getValue().tradesProperty()
+        );
+
+        TableColumn<OptimizationRowView, String> classification =
+                new TableColumn<>("Clasificación");
+        classification.setCellValueFactory(v ->
+                v.getValue().classificationProperty()
+        );
+
+        strategy.setPrefWidth(160);
+        risk.setPrefWidth(90);
+        stop.setPrefWidth(90);
+        take.setPrefWidth(90);
+        train.setPrefWidth(105);
+        validation.setPrefWidth(105);
+        buyHold.setPrefWidth(120);
+        trades.setPrefWidth(120);
+        classification.setPrefWidth(130);
+
+        table.getColumns().addAll(
+                strategy,
+                risk,
+                stop,
+                take,
+                train,
+                validation,
+                buyHold,
+                trades,
+                classification
+        );
+
+        return table;
     }
 
     private void showPerformance() {

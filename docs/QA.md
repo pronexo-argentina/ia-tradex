@@ -1,4 +1,4 @@
-# QA de IA-TradeX v1.0.0
+# QA de IA-TradeX v1.4.0
 
 Checklist recomendado antes de publicar una release.
 
@@ -76,3 +76,18 @@ Comprobar:
 - isotipo en Dock;
 - menú nativo `IA-TradeX → Acerca de IA-TradeX`;
 - cierre y reapertura de la aplicación.
+
+
+## Validación v1.4
+
+- analizar un activo con 80+ velas;
+- abrir `Validación`;
+- verificar ejecución automática en background;
+- revisar cuatro estrategias;
+- comprobar In-Sample / OOS / Buy & Hold OOS;
+- revisar folds Walk-Forward;
+- revisar clasificación de robustez;
+- abrir pestaña Optimización controlada;
+- verificar parámetros y resultados Train/OOS;
+- exportar CSV;
+- repetir con un período de menos de 80 velas y confirmar mensaje de historial insuficiente.

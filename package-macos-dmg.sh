@@ -2,9 +2,9 @@
 set -euo pipefail
 
 APP_NAME="IA-TradeX"
-VERSION="1.0.0"
+VERSION="1.4.0"
 MAIN_CLASS="com.iatradex.Launcher"
-MAIN_JAR="ia-tradex-1.0.0.jar"
+MAIN_JAR="ia-tradex-1.4.0.jar"
 
 if ! command -v jpackage >/dev/null 2>&1; then
   echo "ERROR: jpackage no está disponible. Usá un JDK 21 completo."
