@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.1
+
+- Corregidas las imágenes del README para GitHub.
+- Las capturas ahora usan URLs raw absolutas del repositorio.
+- Se mantienen las imágenes dentro de `docs/images/` para versionarlas con Git.
+
+
 ## 0.9.0
 
 - Paper Trading automático por estrategia.

@@ -15,18 +15,25 @@ No requiere Python, FastAPI, `uvicorn` ni entornos virtuales. La aplicación Jav
 
 ## Capturas
 
-### Dashboard principal
+### Dashboard · Criptomonedas
 
-![Dashboard principal de IA-TradeX](docs/images/dashboard-main.png)
-### Comparador de estrategias
+![Dashboard de criptomonedas](https://raw.githubusercontent.com/pronexo-argentina/ia-tradex/main/docs/images/dashboard-crypto.png)
 
-![Comparador de estrategias de IA-TradeX](docs/images/strategy-comparison.png)
-### Mercado Argentina / Internacional
+### Dashboard · Mercado argentino
 
-![Mercado Argentina de IA-TradeX](docs/images/argentina-market.png)
-### Buscador de CEDEARs y acciones
+![Dashboard de mercado argentino](https://raw.githubusercontent.com/pronexo-argentina/ia-tradex/main/docs/images/dashboard-argentina.png)
 
-![Buscador de activos argentinos](docs/images/argentina-search.png)
+### Análisis técnico · Argentina
+
+![Análisis técnico de YPFD](https://raw.githubusercontent.com/pronexo-argentina/ia-tradex/main/docs/images/analysis-argentina.png)
+
+### Análisis técnico · Criptomonedas
+
+![Análisis técnico de BTC/USDT](https://raw.githubusercontent.com/pronexo-argentina/ia-tradex/main/docs/images/analysis-crypto.png)
+
+### Paper Trading
+
+![Paper Trading de IA-TradeX](https://raw.githubusercontent.com/pronexo-argentina/ia-tradex/main/docs/images/paper-trading.png)
 
 ## Funcionalidades actuales
 
@@ -175,6 +182,39 @@ El precio actual de una posición se actualiza cuando se vuelve a analizar ese a
 Mientras la ventana de Paper Trading está abierta, IA-TradeX actualiza automáticamente las posiciones cada **60 segundos**. Si el último precio consultado alcanza un Stop Loss o Take Profit configurado, la posición simulada se cierra automáticamente y el motivo queda registrado en el historial.
 
 La ejecución es una simulación por sondeo periódico: no es tick a tick y el precio de cierre utilizado es el último precio disponible en el refresco.
+
+
+
+## Paper Trading automático por estrategia
+
+IA-TradeX puede automatizar una estrategia sobre **un activo previamente analizado**.
+
+Configuración disponible:
+
+- activar / pausar modo automático;
+- estrategia: EMA Cross, Momentum, Mean Reversion o Breakout;
+- capital máximo asignado;
+- riesgo porcentual por operación;
+- Stop Loss porcentual;
+- Take Profit porcentual.
+
+El motor:
+
+1. actualiza las posiciones abiertas;
+2. ejecuta Stop Loss / Take Profit simulados;
+3. descarga nuevamente el histórico del activo configurado;
+4. recalcula indicadores;
+5. evalúa la **última vela cerrada**, evitando usar una vela todavía en formación;
+6. abre una posición si existe señal de entrada y no hay otra posición automática equivalente;
+7. calcula la cantidad usando simultáneamente el capital máximo y el riesgo permitido;
+8. cierra por señal de estrategia cuando corresponde;
+9. registra cada evaluación en **Actividad AUTO**.
+
+En instrumentos argentinos la cantidad automática se redondea a unidades enteras. Para crypto e internacional la simulación admite cantidades fraccionarias.
+
+La automatización se evalúa cada **60 segundos mientras la ventana Paper Trading permanece abierta**. La configuración queda persistida localmente.
+
+> Esta funcionalidad es exclusivamente Paper Trading. No se conecta a brokers ni envía órdenes reales.
 
 
 ## Arquitectura
