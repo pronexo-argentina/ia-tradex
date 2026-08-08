@@ -27,6 +27,9 @@ import com.iatradex.validation.ValidationEngine;
 import com.iatradex.validation.ValidationReport;
 import com.iatradex.validation.ValidationRow;
 import com.iatradex.validation.OptimizationResult;
+import com.iatradex.ml.MlEngine;
+import com.iatradex.ml.MlReport;
+import com.iatradex.ml.MlFeature;
 import com.iatradex.paper.PaperPerformanceAnalyzer;
 import com.iatradex.paper.PaperPerformanceStat;
 import com.iatradex.paper.PaperPerformanceSummary;
@@ -43,6 +46,7 @@ import com.iatradex.ui.PaperPositionRow;
 import com.iatradex.ui.PaperPerformanceRow;
 import com.iatradex.ui.ValidationRowView;
 import com.iatradex.ui.OptimizationRowView;
+import com.iatradex.ui.MlFeatureRow;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.animation.KeyFrame;
@@ -90,6 +94,7 @@ public final class IaTradexApp extends Application {
     private final PaperPortfolioAutoEngine paperPortfolioAutoEngine = new PaperPortfolioAutoEngine(scannerEngine, watchlistService, marketService, paperTradingService);
     private final PaperPerformanceAnalyzer paperPerformanceAnalyzer = new PaperPerformanceAnalyzer();
     private final ValidationEngine validationEngine = new ValidationEngine();
+    private final MlEngine mlEngine = new MlEngine();
 
     private final ComboBox<String> marketBox = new ComboBox<>();
     private final ComboBox<String> sourceBox = new ComboBox<>();
@@ -149,6 +154,7 @@ public final class IaTradexApp extends Application {
     private final Button scannerButton = new Button("Scanner");
     private final Button performanceButton = new Button("Performance");
     private final Button validationButton = new Button("Validación");
+    private final Button mlButton = new Button("IA / ML");
 
     private final DateTimeFormatter chartDate =
             DateTimeFormatter.ofPattern("dd/MM")
@@ -226,7 +232,7 @@ public final class IaTradexApp extends Application {
                         .toExternalForm()
         );
 
-        stage.setTitle("IA-TradeX v1.4.0");
+        stage.setTitle("IA-TradeX v2.0.0");
 
         try {
             stage.getIcons().add(
@@ -521,7 +527,7 @@ public final class IaTradexApp extends Application {
         brandHolder.setMaxSize(46, 46);
 
         Label mode = new Label(
-                "100% JAVA · ANÁLISIS / BACKTEST"
+                "100% JAVA · ANÁLISIS / BACKTEST / ML"
         );
         mode.getStyleClass().add("top-mode-label");
 
@@ -545,11 +551,15 @@ public final class IaTradexApp extends Application {
         validationButton.getStyleClass().add("secondary-button");
         validationButton.setOnAction(e -> showValidation());
 
+        mlButton.getStyleClass().add("ml-button");
+        mlButton.setOnAction(e -> showMachineLearning());
+
         matchTopControlHeight(
                 analyzeButton,
                 scannerButton,
                 performanceButton,
                 validationButton,
+                mlButton,
                 paperTradingButton
         );
 
@@ -586,6 +596,7 @@ public final class IaTradexApp extends Application {
                 scannerButton,
                 performanceButton,
                 validationButton,
+                mlButton,
                 paperTradingButton
         );
 
@@ -1641,7 +1652,7 @@ public final class IaTradexApp extends Application {
         title.getStyleClass().add("about-title");
 
         Label subtitle = new Label(
-                "Análisis de mercados y backtesting · 100% Java · v1.4.0"
+                "Análisis de mercados, backtesting y ML · 100% Java · v2.0.0"
         );
         subtitle.getStyleClass().add("about-subtitle");
 
@@ -1756,6 +1767,454 @@ public final class IaTradexApp extends Application {
         }
 
         dialog.showAndWait();
+    }
+
+    private void showMachineLearning() {
+        if (currentAnalysis == null) {
+            Alert alert = new Alert(
+                    Alert.AlertType.INFORMATION,
+                    "Primero analizá un activo en la pantalla principal.",
+                    ButtonType.OK
+            );
+            alert.setTitle("IA / ML");
+            alert.setHeaderText(
+                    "No hay un análisis para entrenar el modelo"
+            );
+            alert.showAndWait();
+            return;
+        }
+
+        Stage window = new Stage();
+        window.initModality(Modality.NONE);
+        window.setTitle("IA-TradeX · IA / Machine Learning");
+
+        Label title = new Label(
+                "Machine Learning · contexto favorable"
+        );
+        title.getStyleClass().add("paper-title");
+
+        Label subtitle = new Label(
+                currentAnalysis.symbol()
+                        + " · "
+                        + currentAnalysis.timeframe()
+                        + " · "
+                        + currentAnalysis.period()
+                        + " · Regresión logística 100% Java"
+        );
+        subtitle.getStyleClass().add("paper-subtitle");
+
+        Label decision = new Label("—");
+        decision.getStyleClass().add(
+                "ml-decision"
+        );
+
+        Label probability = new Label("—");
+        Label balancedAccuracy = new Label("—");
+        Label precision = new Label("—");
+        Label recall = new Label("—");
+        Label brier = new Label("—");
+        Label baseline = new Label("—");
+        Label samples = new Label("—");
+
+        FlowPane cards = new FlowPane(8, 8);
+        cards.setAlignment(Pos.CENTER_LEFT);
+
+        Label explanation = new Label(
+                "Todavía no se entrenó el modelo."
+        );
+        explanation.setWrapText(true);
+        explanation.getStyleClass().add(
+                "ml-explanation"
+        );
+
+        Label methodology = new Label(
+                "Objetivo fijo v2.0: clasificar si el cierre dentro de 5 velas "
+                        + "supera al cierre actual en más de 0,5%. "
+                        + "La normalización y el entrenamiento usan solo In-Sample. "
+                        + "El tramo final queda reservado como OOS. "
+                        + "La probabilidad del modelo NO equivale a probabilidad real de ganar."
+        );
+        methodology.setWrapText(true);
+        methodology.getStyleClass().add(
+                "paper-note"
+        );
+
+        Label featuresTitle = new Label(
+                "Variables que más pesan"
+        );
+        featuresTitle.getStyleClass().add(
+                "paper-active-account"
+        );
+
+        TableView<MlFeatureRow> featuresTable =
+                createMlFeatureTable();
+        VBox.setVgrow(featuresTable, Priority.ALWAYS);
+
+        Button trainButton = new Button(
+                "Entrenar y evaluar"
+        );
+        trainButton.getStyleClass().add(
+                "primary-button"
+        );
+
+        Button exportButton = new Button(
+                "Exportar modelo CSV"
+        );
+        exportButton.getStyleClass().add(
+                "secondary-button"
+        );
+        exportButton.setDisable(true);
+
+        ProgressIndicator progress =
+                new ProgressIndicator();
+        progress.setPrefSize(28, 28);
+        progress.setVisible(false);
+
+        Label statusLabel = new Label(
+                "Preparado para entrenar."
+        );
+        statusLabel.getStyleClass().add(
+                "ml-status"
+        );
+
+        final MlReport[] lastReport =
+                new MlReport[1];
+
+        Runnable train = () -> {
+            if (trainButton.isDisabled()) {
+                return;
+            }
+
+            trainButton.setDisable(true);
+            exportButton.setDisable(true);
+            progress.setVisible(true);
+            statusLabel.setText(
+                    "Entrenando con In-Sample y evaluando OOS..."
+            );
+            featuresTable.getItems().clear();
+
+            AnalysisResult snapshot = currentAnalysis;
+
+            Task<MlReport> task = new Task<>() {
+                @Override
+                protected MlReport call() {
+                    return mlEngine.trainAndEvaluate(
+                            snapshot
+                    );
+                }
+            };
+
+            task.setOnSucceeded(e -> {
+                MlReport report = task.getValue();
+                lastReport[0] = report;
+
+                decision.setText(report.decision());
+                decision.getStyleClass().removeAll(
+                        "ml-favorable",
+                        "ml-observe",
+                        "ml-no-trade"
+                );
+
+                switch (report.decision()) {
+                    case "FAVORABLE" ->
+                            decision.getStyleClass().add(
+                                    "ml-favorable"
+                            );
+                    case "NO OPERAR" ->
+                            decision.getStyleClass().add(
+                                    "ml-no-trade"
+                            );
+                    default ->
+                            decision.getStyleClass().add(
+                                    "ml-observe"
+                            );
+                }
+
+                probability.setText(
+                        String.format(
+                                "%.1f%%",
+                                report.currentProbabilityPct()
+                        )
+                );
+                balancedAccuracy.setText(
+                        String.format(
+                                "%.1f%%",
+                                report.balancedAccuracyPct()
+                        )
+                );
+                precision.setText(
+                        String.format(
+                                "%.1f%%",
+                                report.precisionPct()
+                        )
+                );
+                recall.setText(
+                        String.format(
+                                "%.1f%%",
+                                report.recallPct()
+                        )
+                );
+                brier.setText(
+                        String.format(
+                                "%.4f",
+                                report.brierScore()
+                        )
+                );
+                baseline.setText(
+                        String.format(
+                                "%.4f",
+                                report.baselineBrierScore()
+                        )
+                );
+                samples.setText(
+                        report.trainingSamples()
+                                + " train / "
+                                + report.testSamples()
+                                + " OOS"
+                );
+
+                cards.getChildren().setAll(
+                        performanceMetric(
+                                "PROB. MODELO",
+                                probability
+                        ),
+                        performanceMetric(
+                                "BALANCED ACC.",
+                                balancedAccuracy
+                        ),
+                        performanceMetric(
+                                "PRECISION",
+                                precision
+                        ),
+                        performanceMetric(
+                                "RECALL",
+                                recall
+                        ),
+                        performanceMetric(
+                                "BRIER",
+                                brier
+                        ),
+                        performanceMetric(
+                                "BASELINE BRIER",
+                                baseline
+                        ),
+                        performanceMetric(
+                                "MUESTRAS",
+                                samples
+                        )
+                );
+
+                featuresTable.setItems(
+                        FXCollections.observableArrayList(
+                                report.features()
+                                        .stream()
+                                        .map(MlFeatureRow::new)
+                                        .toList()
+                        )
+                );
+
+                explanation.setText(
+                        report.explanation()
+                );
+
+                statusLabel.setText(
+                        "Modelo evaluado sobre datos fuera de muestra."
+                );
+
+                progress.setVisible(false);
+                trainButton.setDisable(false);
+                exportButton.setDisable(false);
+            });
+
+            task.setOnFailed(e -> {
+                Throwable error = task.getException();
+
+                statusLabel.setText(
+                        "ERROR · "
+                                + (
+                                error == null
+                                        ? "desconocido"
+                                        : error.getMessage()
+                        )
+                );
+
+                progress.setVisible(false);
+                trainButton.setDisable(false);
+            });
+
+            Thread thread = new Thread(
+                    task,
+                    "ml-training"
+            );
+            thread.setDaemon(true);
+            thread.start();
+        };
+
+        trainButton.setOnAction(e -> train.run());
+
+        exportButton.setOnAction(e -> {
+            MlReport report = lastReport[0];
+
+            if (report == null) {
+                return;
+            }
+
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle(
+                    "Exportar reporte Machine Learning"
+            );
+            chooser.setInitialFileName(
+                    "ia-tradex-ml-"
+                            + report.symbol()
+                            .replace("/", "-")
+                            .toLowerCase()
+                            + ".csv"
+            );
+            chooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter(
+                            "CSV",
+                            "*.csv"
+                    )
+            );
+
+            java.io.File file =
+                    chooser.showSaveDialog(window);
+
+            if (file == null) {
+                return;
+            }
+
+            try {
+                mlEngine.exportCsv(
+                        report,
+                        file.toPath()
+                );
+            } catch (Exception ex) {
+                showPaperError(ex.getMessage());
+            }
+        });
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox actions = new HBox(
+                10,
+                statusLabel,
+                progress,
+                spacer,
+                exportButton,
+                trainButton
+        );
+        actions.setAlignment(Pos.CENTER_LEFT);
+
+        HBox decisionBox = new HBox(
+                12,
+                new Label("Decisión ML:"),
+                decision
+        );
+        decisionBox.setAlignment(Pos.CENTER_LEFT);
+        decisionBox.getStyleClass().add(
+                "ml-decision-box"
+        );
+        decisionBox.setPadding(
+                new Insets(10, 12, 10, 12)
+        );
+
+        VBox root = new VBox(
+                12,
+                new VBox(2, title, subtitle),
+                methodology,
+                decisionBox,
+                cards,
+                explanation,
+                featuresTitle,
+                featuresTable,
+                actions
+        );
+        root.setPadding(new Insets(18));
+        root.getStyleClass().addAll(
+                "paper-root",
+                "ml-root"
+        );
+
+        Scene scene = new Scene(
+                root,
+                1260,
+                780
+        );
+        scene.getStylesheets().add(
+                IaTradexApp.class
+                        .getResource("/com/iatradex/theme.css")
+                        .toExternalForm()
+        );
+
+        window.setScene(scene);
+        window.setMinWidth(900);
+        window.setMinHeight(650);
+
+        try {
+            window.getIcons().add(
+                    new Image(
+                            IaTradexApp.class.getResourceAsStream(
+                                    "/com/iatradex/icon.png"
+                            )
+                    )
+            );
+        } catch (Exception ignored) {
+        }
+
+        window.show();
+        Platform.runLater(train);
+    }
+
+    private TableView<MlFeatureRow> createMlFeatureTable() {
+        TableView<MlFeatureRow> table =
+                new TableView<>();
+
+        table.setColumnResizePolicy(
+                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
+        );
+        table.getStyleClass().add(
+                "ml-feature-table"
+        );
+
+        TableColumn<MlFeatureRow, String> feature =
+                new TableColumn<>("Variable");
+        feature.setCellValueFactory(v ->
+                v.getValue().featureProperty()
+        );
+
+        TableColumn<MlFeatureRow, String> weight =
+                new TableColumn<>("Peso");
+        weight.setCellValueFactory(v ->
+                v.getValue().weightProperty()
+        );
+
+        TableColumn<MlFeatureRow, String> importance =
+                new TableColumn<>("Importancia");
+        importance.setCellValueFactory(v ->
+                v.getValue().importanceProperty()
+        );
+
+        TableColumn<MlFeatureRow, String> interpretation =
+                new TableColumn<>("Interpretación");
+        interpretation.setCellValueFactory(v ->
+                v.getValue().interpretationProperty()
+        );
+
+        feature.setPrefWidth(220);
+        weight.setPrefWidth(100);
+        importance.setPrefWidth(110);
+        interpretation.setPrefWidth(420);
+
+        table.getColumns().addAll(
+                feature,
+                weight,
+                importance,
+                interpretation
+        );
+
+        return table;
     }
 
     private void showValidation() {

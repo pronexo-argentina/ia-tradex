@@ -2,14 +2,14 @@
 
 **IA-TradeX** es una aplicación de escritorio 100% Java para análisis técnico, backtesting, Scanner, Paper Trading y gestión automatizada de una cartera simulada.
 
-La v1.4.0 extiende la base funcional con validación temporal y optimización controlada antes de incorporar Machine Learning. No envía órdenes reales y no requiere Python.
+La v2.0.0 agrega una primera capa de Machine Learning 100% Java sobre la base validada de la v1.4. No envía órdenes reales y no requiere Python.
 
 ![Java](https://img.shields.io/badge/Java-21-blue)
 ![JavaFX](https://img.shields.io/badge/JavaFX-23-blue)
 ![License](https://img.shields.io/badge/License-AGPL--3.0-green)
-![Version](https://img.shields.io/badge/version-1.4.0-brightgreen)
+![Version](https://img.shields.io/badge/version-2.0.0-brightgreen)
 
-## Qué incluye la v1.0.0
+## Qué incluye IA-TradeX 2.0.0
 
 - análisis de **Criptomonedas, Argentina e Internacional**;
 - Binance y Kraken para Crypto;
@@ -336,6 +336,7 @@ Más detalle en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - [QA v1.0.0](docs/QA.md)
 - [Notas de release 1.0.0](docs/RELEASE_1.0.0.md)
 - [Notas de release 1.4.0](docs/RELEASE_1.4.0.md)
+- [Notas de release 2.0.0](docs/RELEASE_2.0.0.md)
 - [Changelog](docs/CHANGELOG.md)
 
 
@@ -416,19 +417,114 @@ La validación puede exportarse a CSV con:
 - resultado de esos parámetros en entrenamiento y OOS.
 
 
+
+## IA / Machine Learning · v2.0
+
+El botón **IA / ML** entrena y evalúa un modelo de regresión logística 100% Java sobre el activo actualmente analizado.
+
+El objetivo no es adivinar el precio exacto. El modelo clasifica si el contexto actual es compatible con un movimiento favorable dentro de un horizonte fijo.
+
+### Etiqueta de entrenamiento
+
+En v2.0 la etiqueta es deliberadamente fija:
+
+```text
+Horizonte: 5 velas
+Clase positiva: cierre futuro > cierre actual + 0,5%
+```
+
+No se optimiza esa definición contra el OOS.
+
+### Variables utilizadas
+
+- retorno de 1 vela;
+- retorno de 5 velas;
+- retorno de 20 velas;
+- separación EMA 12/26;
+- distancia precio / EMA 26;
+- RSI normalizado;
+- ATR como porcentaje del precio;
+- rango de vela;
+- volumen relativo frente a 20 velas.
+
+### Separación temporal
+
+El modelo usa aproximadamente el 70% inicial como entrenamiento y el tramo final como OOS.
+
+La separación es estricta: una muestra de entrenamiento se descarta si su etiqueta a 5 velas invade el período OOS.
+
+Además:
+
+- los indicadores son causales;
+- la normalización se calcula solo con entrenamiento;
+- los pesos del modelo se ajustan solo con entrenamiento;
+- OOS se usa únicamente para evaluar.
+
+### Métricas del modelo
+
+La pantalla muestra:
+
+- probabilidad producida por el modelo;
+- Balanced Accuracy;
+- Precision;
+- Recall;
+- Brier Score;
+- Brier Score del baseline;
+- cantidad de muestras Train / OOS.
+
+El **Brier Score** mide error probabilístico: cuanto menor, mejor.
+
+El baseline utiliza la frecuencia histórica de la clase positiva observada en entrenamiento.
+
+### Decisión
+
+La capa ML puede devolver:
+
+```text
+FAVORABLE
+OBSERVAR
+NO OPERAR
+```
+
+`FAVORABLE` requiere una probabilidad alta y que el Brier OOS supere al baseline.
+
+`NO OPERAR` es una salida válida del modelo.
+
+La probabilidad mostrada es una probabilidad interna de la etiqueta aprendida. **No representa la probabilidad real de ganar una operación.**
+
+### Explicabilidad
+
+IA-TradeX muestra los pesos estandarizados de las variables y una importancia relativa basada en el valor absoluto de cada peso.
+
+Esto permite inspeccionar qué variables están influyendo más en la clasificación.
+
+### Uso en v2.0
+
+La capa ML es **informativa y de investigación**. No modifica automáticamente las reglas de Paper Trading, Cartera AUTO ni Scanner.
+
+La integración del ML como filtro de ejecución debería hacerse solamente después de acumular evidencia suficiente de calidad OOS.
+
+### Exportación
+
+El reporte ML puede exportarse a CSV con métricas, decisión y variables del modelo.
+
+
 ## Próximas etapas
 
-La v1.4.0 deja implementada la primera capa de validación temporal previa a ML.
+La v2.0.0 incorpora el primer modelo ML, pero lo mantiene desacoplado de la ejecución automática.
 
 Siguientes candidatos:
 
-- validación masiva cruzada entre activos y mercados;
-- más folds y ventanas configurables;
-- Monte Carlo / bootstrap de operaciones;
-- datos por WebSocket/streaming donde la fuente lo permita;
-- Machine Learning sobre variables y resultados ya validados;
+- validación cruzada del modelo en múltiples activos;
+- calibración probabilística;
+- comparación contra modelos más simples y árboles;
+- persistencia/versionado de modelos;
+- ML como filtro opcional del Scanner;
+- ML como filtro opcional de Cartera AUTO, inicialmente solo en Paper Trading;
+- Monte Carlo / bootstrap;
+- WebSocket/streaming donde la fuente lo permita;
 - sentimiento/noticias;
-- explicabilidad de modelos;
+- explicabilidad avanzada;
 - integración opcional con brokers en una etapa posterior.
 
 ## Acerca de

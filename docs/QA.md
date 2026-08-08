@@ -1,4 +1,4 @@
-# QA de IA-TradeX v1.4.0
+# QA de IA-TradeX v2.0.0
 
 Checklist recomendado antes de publicar una release.
 
@@ -91,3 +91,19 @@ Comprobar:
 - verificar parámetros y resultados Train/OOS;
 - exportar CSV;
 - repetir con un período de menos de 80 velas y confirmar mensaje de historial insuficiente.
+
+
+## Machine Learning v2.0
+
+- analizar un activo con histórico largo;
+- abrir `IA / ML`;
+- verificar ejecución en background;
+- confirmar muestras Train / OOS;
+- revisar probabilidad y decisión;
+- revisar Balanced Accuracy, Precision y Recall;
+- comprobar Brier y Baseline Brier;
+- revisar tabla de importancia de variables;
+- exportar CSV;
+- repetir con un período corto y confirmar mensaje de historial insuficiente;
+- verificar que entrenar ML no abra posiciones de Paper Trading;
+- verificar que Cartera AUTO y Scanner sigan funcionando sin depender del modelo.

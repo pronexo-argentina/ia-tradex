@@ -1,5 +1,71 @@
 # Changelog
 
+## 2.0.0
+
+### Machine Learning
+
+- Primera capa ML de IA-TradeX.
+- Implementación 100% Java sin Python.
+- Modelo de regresión logística regularizada.
+- Entrenamiento en background para no bloquear JavaFX.
+- Nueva pantalla `IA / ML`.
+
+### Dataset
+
+- Etiqueta fija a 5 velas.
+- Clase positiva cuando el cierre futuro supera +0,5%.
+- Variables: retornos 1/5/20, EMA spread, distancia a EMA26, RSI, ATR %, rango y volumen relativo.
+- Indicadores recalculados sobre copia aislada de las velas.
+- Exclusión de muestras Train cuyo horizonte futuro invade OOS.
+
+### Anti-leakage
+
+- Separación cronológica Train/OOS.
+- Normalización calculada exclusivamente con Train.
+- Entrenamiento exclusivamente con Train.
+- OOS usado únicamente para evaluación.
+- Última vela cerrada usada para inferencia actual.
+
+### Evaluación
+
+- Accuracy.
+- Balanced Accuracy.
+- Precision.
+- Recall.
+- Brier Score.
+- Baseline Brier.
+- Frecuencia de clase positiva.
+- Comparación automática contra baseline.
+
+### Decisión ML
+
+- `FAVORABLE`.
+- `OBSERVAR`.
+- `NO OPERAR`.
+- `FAVORABLE` requiere calidad OOS mejor que baseline.
+- La probabilidad no se presenta como probabilidad real de ganar.
+
+### Explicabilidad
+
+- Pesos estandarizados por variable.
+- Importancia relativa.
+- Interpretación de dirección favorable/desfavorable.
+
+### Seguridad funcional
+
+- ML desacoplado de Scanner y Paper Trading en v2.0.
+- No abre posiciones automáticamente.
+- No envía órdenes reales.
+
+### Exportación y documentación
+
+- Exportación del reporte ML a CSV.
+- README actualizado.
+- Manual actualizado.
+- Arquitectura y QA actualizados.
+- Maven y packaging macOS actualizados a 2.0.0.
+
+
 ## 1.4.0
 
 - Optimización controlada de Riesgo, Stop Loss y Take Profit.

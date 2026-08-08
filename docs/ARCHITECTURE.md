@@ -1,4 +1,4 @@
-# Arquitectura de IA-TradeX v1.4.0
+# Arquitectura de IA-TradeX v2.0.0
 
 IA-TradeX es una aplicación de escritorio 100% Java.
 
@@ -127,3 +127,23 @@ Responsable de:
 Cada slice temporal se copia a nuevos objetos `Candle` y vuelve a pasar por `IndicatorEngine`, evitando reutilizar indicadores calculados sobre la serie completa.
 
 La búsqueda de parámetros de v1.4 se limita a Riesgo/Stop/Take y nunca utiliza el tramo OOS para seleccionar la configuración.
+
+
+### Machine Learning
+
+`com.iatradex.ml`
+
+La v2.0 implementa una regresión logística directamente en Java.
+
+Componentes:
+
+- `MlEngine`: construcción del dataset, split temporal, normalización Train-only, entrenamiento, evaluación e inferencia;
+- `LogisticRegressionModel`: cálculo probabilístico con pesos normalizados;
+- `MlReport`: métricas OOS y decisión;
+- `MlFeature`: explicabilidad por peso.
+
+La etiqueta usa un horizonte fijo de 5 velas y un retorno futuro superior a 0,5%.
+
+Las muestras de entrenamiento cuyo horizonte de etiqueta invade OOS se descartan para evitar leakage.
+
+La capa ML permanece desacoplada de la ejecución automática.

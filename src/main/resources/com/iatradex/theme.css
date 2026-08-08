@@ -1065,3 +1065,60 @@
 .optimization-table {
     -fx-font-size: 11px;
 }
+
+
+/* v2.0.0 Machine Learning */
+.ml-button {
+    -fx-background-color: #18314c;
+    -fx-text-fill: #72d7ff;
+    -fx-border-color: #2d5778;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-font-weight: 900;
+}
+
+.ml-root {
+    -fx-background-color: #0d141c;
+}
+
+.ml-decision-box {
+    -fx-background-color: #111b25;
+    -fx-border-color: #273746;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+}
+
+.ml-decision {
+    -fx-font-size: 18px;
+    -fx-font-weight: 900;
+}
+
+.ml-favorable {
+    -fx-text-fill: #63dd91;
+}
+
+.ml-observe {
+    -fx-text-fill: #f0c86a;
+}
+
+.ml-no-trade {
+    -fx-text-fill: #ff7b7b;
+}
+
+.ml-explanation {
+    -fx-background-color: #111b25;
+    -fx-border-color: #273746;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 10px 12px;
+    -fx-text-fill: #b9c8d5;
+}
+
+.ml-status {
+    -fx-text-fill: #9db0c0;
+    -fx-font-size: 11px;
+}
+
+.ml-feature-table {
+    -fx-font-size: 11px;
+}

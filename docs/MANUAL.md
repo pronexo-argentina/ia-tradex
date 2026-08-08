@@ -1,4 +1,4 @@
-# Manual de usuario · IA-TradeX v1.4.0
+# Manual de usuario · IA-TradeX v2.0.0
 
 Este manual está pensado para una persona sin experiencia previa en trading.
 
@@ -605,25 +605,26 @@ El icono de aplicación/Dock utiliza solamente el isotipo IX.
 
 - no envía órdenes reales;
 - no conecta brokers;
-- no usa Machine Learning todavía;
-- no existe validación walk-forward completa todavía;
-- no existe validación fuera de muestra completa todavía;
+- el modelo ML de v2.0 trabaja sobre un solo activo analizado por vez;
+- el ML todavía no filtra automáticamente Scanner ni Cartera AUTO;
+- la robustez v1.4 es principalmente temporal sobre el activo actual;
+- todavía no existe validación cruzada masiva entre muchos activos;
 - algunas fuentes públicas pueden estar demoradas;
 - la automatización depende de consultas periódicas, no de ejecución tick-by-tick.
 
 ## 26. Próxima etapa
 
-Antes de agregar ML conviene implementar:
+Después de v2.0 conviene concentrarse en validar el modelo antes de darle control operativo:
 
-1. validación walk-forward;
-2. validación fuera de muestra;
-3. robustez por períodos;
-4. comparación sistemática entre estrategias;
-5. recién después ML.
+1. validación cruzada del ML en múltiples activos;
+2. calibración de probabilidades;
+3. comparación contra otros modelos simples;
+4. Monte Carlo / sensibilidad;
+5. recién después usar ML como filtro opcional de Paper Trading.
 
 ## 27. Acerca de
 
-**IA-TradeX v1.4.0**
+**IA-TradeX v2.0.0**
 
 **Autor:** Juan Manuel De Castro  
 **Email:** jm@pronexo.com  
@@ -728,15 +729,144 @@ Score y clasificación de robustez temporal.
 ### v1.4
 Optimización controlada de Riesgo / Stop / Take y evaluación posterior sobre OOS.
 
-## 30. Antes de Machine Learning
+## 30. Qué significa estar listo para ML
 
 La salida `ROBUSTA` no significa que una estrategia deba utilizarse con dinero real.
 
-Antes de ML y, especialmente, antes de cualquier integración real, sigue siendo conveniente sumar:
+La v2.0 ya incorpora un primer modelo ML, pero antes de usarlo como filtro de ejecución sigue siendo conveniente sumar:
 
 - validación cruzada en muchos activos;
 - más períodos;
 - Monte Carlo;
 - sensibilidad a costos;
 - pruebas con datos nuevos acumulados en el tiempo.
+
+
+
+## 31. IA / Machine Learning
+
+Primero analizá un activo y luego presioná **IA / ML**.
+
+La ventana entrena un modelo nuevo para ese activo y período.
+
+### Qué intenta aprender
+
+El modelo clasifica si, dentro de 5 velas, el cierre supera al cierre actual en más de 0,5%.
+
+Ejemplo:
+
+```text
+cierre actual = 100
+umbral positivo = 100,50
+```
+
+Si el cierre dentro de 5 velas supera ese nivel, el ejemplo histórico se marca como clase positiva.
+
+### Qué variables mira
+
+- retorno 1 vela;
+- retorno 5 velas;
+- retorno 20 velas;
+- EMA 12 vs EMA 26;
+- precio vs EMA 26;
+- RSI;
+- ATR relativo;
+- rango de vela;
+- volumen relativo.
+
+### Entrenamiento y OOS
+
+El histórico se separa cronológicamente.
+
+El modelo no puede usar ejemplos cuya etiqueta futura atraviese la frontera entre Train y OOS.
+
+La media y desviación usadas para normalizar las variables se calculan solamente con Train.
+
+### Balanced Accuracy
+
+Promedia la capacidad de reconocer ejemplos positivos y negativos.
+
+Es especialmente útil cuando una de las clases aparece con más frecuencia que la otra.
+
+### Precision
+
+De todos los casos que el modelo marcó positivos, qué proporción realmente fue positiva históricamente en OOS.
+
+### Recall
+
+De todos los casos positivos del OOS, qué proporción encontró el modelo.
+
+### Brier Score
+
+Mide el error de las probabilidades.
+
+Menor es mejor.
+
+IA-TradeX muestra también **Baseline Brier**. Si el modelo no mejora al baseline, la señal se considera débil aunque la probabilidad actual sea alta.
+
+### Decisiones
+
+**FAVORABLE**  
+El modelo supera el umbral interno y además muestra una calidad OOS superior al baseline.
+
+**OBSERVAR**  
+No existe evidencia suficiente para una señal fuerte.
+
+**NO OPERAR**  
+La probabilidad de la clase favorable es baja.
+
+### Importancia de variables
+
+La tabla muestra:
+
+- variable;
+- peso;
+- importancia relativa;
+- dirección de influencia.
+
+Un peso positivo empuja la clasificación hacia favorable. Un peso negativo la empuja hacia desfavorable.
+
+### Limitación importante
+
+La probabilidad del modelo es:
+
+> probabilidad estimada de la etiqueta que aprendió el modelo
+
+No debe interpretarse como:
+
+> probabilidad real de ganar dinero
+
+### Exportar
+
+Presioná:
+
+```text
+Exportar modelo CSV
+```
+
+para guardar métricas y pesos del reporte actual.
+
+## 32. Relación entre Validación y ML
+
+La v1.4 valida estrategias basadas en reglas.
+
+La v2.0 agrega un modelo estadístico independiente.
+
+Por ahora:
+
+```text
+Backtest / Validación → estudia estrategias
+ML                  → estudia contexto favorable
+Paper Trading       → simula operaciones
+```
+
+El ML todavía no activa ni bloquea automáticamente operaciones de Paper Trading.
+
+## 33. Recomendación para pruebas
+
+Para obtener suficientes ejemplos, usá períodos largos.
+
+En activos diarios, `1y` será generalmente más útil que `3m`.
+
+Si la ventana indica que faltan muestras Train/OOS, elegí más histórico.
 
