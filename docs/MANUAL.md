@@ -387,11 +387,86 @@ Las cuentas, posiciones e historial se guardan automáticamente en:
 
 Por eso, cerrar la aplicación no borra la cartera simulada.
 
-### Limitaciones de esta primera etapa
+### Actualización automática
+
+Mientras la ventana de Paper Trading está abierta, IA-TradeX consulta automáticamente el precio de cada posición abierta cada **60 segundos**.
+
+También existe el botón **Actualizar ahora** para forzar una consulta inmediata.
+
+La pantalla muestra la hora de la última actualización.
+
+### Stop Loss y Take Profit automáticos
+
+Si una posición tiene Stop Loss o Take Profit:
+
+- si el precio consultado es menor o igual al Stop Loss, IA-TradeX cierra la posición simulada con motivo **Stop Loss automático**;
+- si el precio consultado es mayor o igual al Take Profit, IA-TradeX cierra la posición simulada con motivo **Take Profit automático**.
+
+El cierre pasa al historial y el efectivo vuelve automáticamente a la cuenta simulada correspondiente.
+
+### Limitaciones de esta etapa
 
 - no existen órdenes reales;
 - no hay conexión con brokers;
-- Stop Loss y Take Profit todavía no ejecutan cierres automáticamente;
-- los precios se actualizan al volver a analizar el activo;
+- la comprobación se realiza cada 60 segundos, no tick a tick;
+- el precio de salida es el último precio disponible cuando se detecta el disparador;
+- pueden existir saltos entre el nivel configurado y el precio detectado;
 - no se modelan todavía comisiones específicas del broker en Paper Trading.
+
+
+
+## Paper Trading automático por estrategia
+
+Esta función permite que IA-TradeX abra y cierre operaciones simuladas aplicando una estrategia seleccionada.
+
+### Configuración
+
+Primero analizá el activo en la pantalla principal. Luego abrí **Paper Trading** y presioná **Usar activo analizado**.
+
+Configurá:
+
+- **Automático**: activa o pausa el motor;
+- **Estrategia**: EMA Cross, Momentum, Mean Reversion o Breakout;
+- **Capital máx.**: monto máximo que una entrada automática puede utilizar;
+- **Riesgo %**: pérdida teórica máxima buscada según la distancia al Stop Loss;
+- **Stop %**: distancia porcentual del Stop Loss respecto del precio de entrada;
+- **Take %**: distancia porcentual del Take Profit.
+
+Presioná **Guardar AUTO**.
+
+### Cómo toma las decisiones
+
+Cada 60 segundos, mientras Paper Trading esté abierto, el motor vuelve a analizar el activo configurado.
+
+Para las señales utiliza la **última vela cerrada**. Esto evita basar una entrada en una vela que todavía puede cambiar antes de cerrar.
+
+Si hay señal de entrada y no existe ya una posición automática de ese activo y estrategia, calcula la cantidad respetando:
+
+- saldo disponible;
+- capital máximo configurado;
+- riesgo porcentual;
+- distancia al Stop Loss.
+
+Si existe una posición abierta y aparece una señal de salida, la cierra al último precio disponible.
+
+Stop Loss y Take Profit siguen teniendo prioridad mediante el monitor de posiciones.
+
+### Actividad AUTO
+
+La pestaña **Actividad AUTO** conserva las últimas evaluaciones y eventos, por ejemplo:
+
+```text
+BUY   YPFD · Momentum · compra automática ...
+WAIT  YPFD · Momentum · sin señal de entrada
+EXIT  YPFD · Momentum · salida por señal
+ERROR ...
+```
+
+Este registro se guarda junto con el resto del Paper Trading.
+
+### Alcance actual
+
+La primera versión automática administra **un activo configurado a la vez**.
+
+Todavía no escanea todo el mercado ni una lista completa de activos. Esa función se incorporará posteriormente mediante una watchlist/scanner.
 

@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.9.0
+
+- Paper Trading automático por estrategia.
+- Activación/pausa persistente.
+- Estrategias EMA Cross, Momentum, Mean Reversion y Breakout.
+- Selección del activo desde el último análisis realizado.
+- Capital máximo configurable.
+- Riesgo, Stop Loss y Take Profit configurables.
+- Position sizing basado en capital y riesgo.
+- Prevención de posición automática duplicada para activo/estrategia.
+- Entradas evaluadas con la última vela cerrada.
+- Salida automática por señal de estrategia.
+- Actividad AUTO persistente con hasta 200 eventos.
+- Configuración AUTO persistida en el archivo local de Paper Trading.
+- Capturas del README reemplazadas por nuevas imágenes limpias del producto.
+- Manual y README actualizados.
+
+
+## 0.8.0
+
+- Actualización automática de posiciones abiertas cada 60 segundos.
+- Botón `Actualizar ahora`.
+- Precios en vivo/últimos disponibles para Binance, Kraken, Yahoo Finance y Open BYMADATA.
+- Stop Loss automático en Paper Trading.
+- Take Profit automático en Paper Trading.
+- Cierre automático registrado en historial con motivo.
+- Equity y P&L se refrescan después de cada consulta.
+- Indicador de última actualización.
+- Compatibilidad con posiciones persistidas de versiones anteriores mediante detección de mercado/fuente por defecto.
+- Manual y README actualizados.
+
+
 ## 0.7.1
 
 - Corregido selector de cuenta de Paper Trading.

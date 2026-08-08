@@ -198,4 +198,64 @@ public final class YahooMarketDataProvider implements MarketDataProvider {
 
         return result;
     }
+
+    public double livePrice(String symbol) throws Exception {
+        String url = "https://query1.finance.yahoo.com/v8/finance/chart/"
+                + UrlUtil.enc(symbol)
+                + "?range=1d&interval=1m&includePrePost=false";
+
+        JsonNode root = http.get(url);
+        JsonNode chart = root.path("chart");
+
+        if (!chart.path("error").isNull()
+                && !chart.path("error").isMissingNode()) {
+            throw new IllegalStateException(
+                    "Yahoo: "
+                            + chart.path("error")
+                                    .path("description")
+                                    .asText("error desconocido")
+            );
+        }
+
+        JsonNode result = chart.path("result");
+
+        if (!result.isArray() || result.isEmpty()) {
+            throw new IllegalStateException(
+                    "Yahoo no devolvió cotización para " + symbol
+            );
+        }
+
+        JsonNode meta = result.get(0).path("meta");
+
+        double price = meta.path("regularMarketPrice")
+                .asDouble(Double.NaN);
+
+        if (!Double.isFinite(price) || price <= 0.0) {
+            JsonNode closes = result.get(0)
+                    .path("indicators")
+                    .path("quote")
+                    .path(0)
+                    .path("close");
+
+            for (int i = closes.size() - 1; i >= 0; i--) {
+                if (closes.get(i).isNumber()) {
+                    double candidate = closes.get(i).asDouble();
+
+                    if (Double.isFinite(candidate) && candidate > 0.0) {
+                        price = candidate;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!Double.isFinite(price) || price <= 0.0) {
+            throw new IllegalStateException(
+                    "Yahoo no devolvió un precio válido para " + symbol
+            );
+        }
+
+        return price;
+    }
+
 }

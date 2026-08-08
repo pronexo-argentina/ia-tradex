@@ -4,6 +4,8 @@ public record PaperPosition(
         String id,
         String symbol,
         String market,
+        String marketType,
+        String source,
         String currency,
         double quantity,
         double entryPrice,
@@ -16,10 +18,38 @@ public record PaperPosition(
 ) {
     public PaperPosition withLastPrice(Double price) {
         return new PaperPosition(
-                id, symbol, market, currency, quantity, entryPrice,
-                price, stopLoss, takeProfit, strategyContext,
-                regimeContext, openedAt
+                id, symbol, market, marketType, source, currency,
+                quantity, entryPrice, price, stopLoss, takeProfit,
+                strategyContext, regimeContext, openedAt
         );
+    }
+
+    public String resolvedMarketType() {
+        if (marketType != null && !marketType.isBlank()) {
+            return marketType;
+        }
+
+        if ("ARS".equalsIgnoreCase(currency)) {
+            return "argentina";
+        }
+
+        if (market != null && market.toLowerCase().contains("cripto")) {
+            return "crypto";
+        }
+
+        return "stocks";
+    }
+
+    public String resolvedSource() {
+        if (source != null && !source.isBlank()) {
+            return source;
+        }
+
+        return switch (resolvedMarketType()) {
+            case "argentina" -> "open-bymadata";
+            case "crypto" -> "binance";
+            default -> "yahoo";
+        };
     }
 
     public double marketValue() {

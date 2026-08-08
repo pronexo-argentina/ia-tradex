@@ -1,5 +1,6 @@
 package com.iatradex.paper;
 
+import com.iatradex.market.MarketService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
@@ -30,6 +31,76 @@ public final class PaperTradingService {
 
     public synchronized PaperTradingState state() {
         return state;
+    }
+
+
+    public synchronized PaperAutoConfig autoConfig() {
+        if (state.autoConfig == null) {
+            state.autoConfig = PaperAutoConfig.disabled();
+        }
+        return state.autoConfig;
+    }
+
+    public synchronized void setAutoConfig(
+            PaperAutoConfig config
+    ) throws IOException {
+        state.autoConfig = config == null
+                ? PaperAutoConfig.disabled()
+                : config;
+        save();
+    }
+
+    public synchronized void addAutoLog(
+            String level,
+            String message
+    ) throws IOException {
+        if (state.autoLog == null) {
+            state.autoLog = new ArrayList<>();
+        }
+
+        state.autoLog.add(
+                0,
+                new PaperAutoLogEntry(
+                        Instant.now().toString(),
+                        level == null ? "INFO" : level,
+                        message == null ? "" : message
+                )
+        );
+
+        if (state.autoLog.size() > 200) {
+            state.autoLog = new ArrayList<>(
+                    state.autoLog.subList(0, 200)
+            );
+        }
+
+        save();
+    }
+
+    public synchronized List<PaperAutoLogEntry> autoLog() {
+        if (state.autoLog == null) {
+            state.autoLog = new ArrayList<>();
+        }
+        return List.copyOf(state.autoLog);
+    }
+
+    public synchronized PaperPosition findOpenPosition(
+            String symbol,
+            String currency,
+            String strategyContext
+    ) {
+        return state.positions.stream()
+                .filter(p ->
+                        p.symbol().equalsIgnoreCase(symbol)
+                                && p.currency().equalsIgnoreCase(currency)
+                                && (
+                                strategyContext == null
+                                        || strategyContext.equalsIgnoreCase(
+                                                p.strategyContext()
+                                        )
+                        )
+                )
+                .findFirst()
+                .orElse(null);
     }
 
     public synchronized PaperAccount account(String currency) {
@@ -75,6 +146,8 @@ public final class PaperTradingService {
     public synchronized PaperPosition buy(
             String symbol,
             String market,
+            String marketType,
+            String source,
             String currency,
             double quantity,
             double price,
@@ -110,6 +183,8 @@ public final class PaperTradingService {
                 UUID.randomUUID().toString(),
                 symbol,
                 market,
+                marketType,
+                source,
                 currency,
                 quantity,
                 price,
@@ -211,6 +286,110 @@ public final class PaperTradingService {
         save();
     }
 
+
+    public PaperRefreshResult refreshOpenPositions(
+            MarketService marketService
+    ) throws IOException {
+        List<PaperPosition> snapshot;
+
+        synchronized (this) {
+            snapshot = List.copyOf(state.positions);
+        }
+
+        int updated = 0;
+        int closed = 0;
+        List<String> messages = new ArrayList<>();
+
+        for (PaperPosition position : snapshot) {
+            try {
+                double price = marketService.livePrice(
+                        position.resolvedMarketType(),
+                        position.resolvedSource(),
+                        position.symbol()
+                );
+
+                String trigger = null;
+
+                if (position.stopLoss() != null
+                        && position.stopLoss() > 0.0
+                        && price <= position.stopLoss()) {
+                    trigger = "Stop Loss automático";
+                } else if (position.takeProfit() != null
+                        && position.takeProfit() > 0.0
+                        && price >= position.takeProfit()) {
+                    trigger = "Take Profit automático";
+                }
+
+                synchronized (this) {
+                    boolean stillOpen = state.positions.stream()
+                            .anyMatch(p ->
+                                    p.id().equals(position.id())
+                            );
+
+                    if (!stillOpen) {
+                        continue;
+                    }
+
+                    if (trigger != null) {
+                        close(position.id(), price, trigger);
+                        closed++;
+                        messages.add(
+                                position.symbol()
+                                        + ": "
+                                        + trigger
+                                        + " @ "
+                                        + price
+                        );
+                    } else {
+                        updatePositionPrice(
+                                position.id(),
+                                price
+                        );
+                        updated++;
+                    }
+                }
+            } catch (Exception ex) {
+                messages.add(
+                        position.symbol()
+                                + ": "
+                                + (
+                                ex.getMessage() == null
+                                        ? "error al actualizar"
+                                        : ex.getMessage()
+                        )
+                );
+            }
+        }
+
+        synchronized (this) {
+            save();
+        }
+
+        return new PaperRefreshResult(
+                updated,
+                closed,
+                List.copyOf(messages),
+                Instant.now().toString()
+        );
+    }
+
+    private void updatePositionPrice(
+            String positionId,
+            double price
+    ) {
+        List<PaperPosition> updated = new ArrayList<>();
+
+        for (PaperPosition position : state.positions) {
+            if (position.id().equals(positionId)) {
+                updated.add(position.withLastPrice(price));
+            } else {
+                updated.add(position);
+            }
+        }
+
+        state.positions = updated;
+    }
+
     public synchronized double equity(String currency) {
         PaperAccount account = account(currency);
         double positionsValue = state.positions.stream()
@@ -287,6 +466,14 @@ public final class PaperTradingService {
 
             if (loaded.history == null) {
                 loaded.history = new ArrayList<>();
+            }
+
+            if (loaded.autoConfig == null) {
+                loaded.autoConfig = PaperAutoConfig.disabled();
+            }
+
+            if (loaded.autoLog == null) {
+                loaded.autoLog = new ArrayList<>();
             }
 
             return loaded;

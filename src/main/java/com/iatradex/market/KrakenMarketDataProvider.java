@@ -95,4 +95,46 @@ public final class KrakenMarketDataProvider implements MarketDataProvider {
                 .replace("BTC", "XBT")
                 .replace("/", "");
     }
+
+    public double livePrice(String symbol) throws Exception {
+        String pair = normalizePair(symbol);
+
+        JsonNode response = http.get(
+                "https://api.kraken.com/0/public/Ticker?pair=" + pair
+        );
+
+        JsonNode errors = response.path("error");
+        if (errors.isArray() && !errors.isEmpty()) {
+            throw new IllegalStateException(
+                    "Kraken: " + errors.toString()
+            );
+        }
+
+        JsonNode result = response.path("result");
+
+        java.util.Iterator<java.util.Map.Entry<String, JsonNode>> fields =
+                result.fields();
+
+        if (!fields.hasNext()) {
+            throw new IllegalStateException(
+                    "Kraken no devolvió ticker para " + symbol
+            );
+        }
+
+        JsonNode ticker = fields.next().getValue();
+        JsonNode close = ticker.path("c");
+
+        double price = close.isArray() && !close.isEmpty()
+                ? close.get(0).asDouble(Double.NaN)
+                : Double.NaN;
+
+        if (!Double.isFinite(price) || price <= 0.0) {
+            throw new IllegalStateException(
+                    "Kraken no devolvió un precio válido para " + symbol
+            );
+        }
+
+        return price;
+    }
+
 }

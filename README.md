@@ -170,7 +170,11 @@ Los datos se guardan en:
 
 El precio actual de una posición se actualiza cuando se vuelve a analizar ese activo en IA-TradeX.
 
-**Importante:** esta etapa no envía órdenes a brokers ni exchanges. Stop Loss y Take Profit se almacenan como parte de la simulación, pero todavía no se ejecutan automáticamente.
+**Importante:** esta etapa no envía órdenes a brokers ni exchanges.
+
+Mientras la ventana de Paper Trading está abierta, IA-TradeX actualiza automáticamente las posiciones cada **60 segundos**. Si el último precio consultado alcanza un Stop Loss o Take Profit configurado, la posición simulada se cierra automáticamente y el motivo queda registrado en el historial.
+
+La ejecución es una simulación por sondeo periódico: no es tick a tick y el precio de cierre utilizado es el último precio disponible en el refresco.
 
 
 ## Arquitectura
@@ -240,7 +244,7 @@ El manual se mantiene durante el desarrollo para que la documentación final no 
 ## Próximas etapas
 
 - ejecución automática de Paper Trading por estrategia
-- monitoreo automático de Stop Loss / Take Profit
+- actualización más frecuente mediante streaming/WebSocket
 - WebSockets / datos en vivo
 - validación walk-forward
 - validación fuera de muestra

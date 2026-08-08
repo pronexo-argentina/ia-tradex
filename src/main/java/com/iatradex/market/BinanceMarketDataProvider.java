@@ -90,4 +90,24 @@ public final class BinanceMarketDataProvider implements MarketDataProvider {
 
         return candles;
     }
+
+    public double livePrice(String symbol) throws Exception {
+        String apiSymbol = symbol.replace("/", "").toUpperCase();
+
+        JsonNode response = http.get(
+                "https://api.binance.com/api/v3/ticker/price?symbol="
+                        + apiSymbol
+        );
+
+        double price = response.path("price").asDouble(Double.NaN);
+
+        if (!Double.isFinite(price) || price <= 0.0) {
+            throw new IllegalStateException(
+                    "Binance no devolvió un precio válido para " + symbol
+            );
+        }
+
+        return price;
+    }
+
 }

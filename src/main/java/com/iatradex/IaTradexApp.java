@@ -14,13 +14,20 @@ import com.iatradex.model.StrategyType;
 import com.iatradex.model.TechnicalSnapshot;
 import com.iatradex.model.Trade;
 import com.iatradex.paper.PaperAccount;
+import com.iatradex.paper.PaperAutoConfig;
+import com.iatradex.paper.PaperAutoResult;
+import com.iatradex.paper.PaperAutoTradingEngine;
 import com.iatradex.paper.PaperPosition;
+import com.iatradex.paper.PaperRefreshResult;
 import com.iatradex.paper.PaperTradingService;
 import com.iatradex.ui.TradeRow;
 import com.iatradex.ui.StrategyRow;
 import com.iatradex.ui.PaperHistoryRow;
+import com.iatradex.ui.PaperAutoLogRow;
 import com.iatradex.ui.PaperPositionRow;
 import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
@@ -48,12 +55,14 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class IaTradexApp extends Application {
 
     private final MarketService marketService = new MarketService();
     private final AnalysisService analysisService = new AnalysisService(marketService);
     private final PaperTradingService paperTradingService = new PaperTradingService();
+    private final PaperAutoTradingEngine paperAutoTradingEngine = new PaperAutoTradingEngine(analysisService, marketService, paperTradingService);
 
     private final ComboBox<String> marketBox = new ComboBox<>();
     private final ComboBox<String> sourceBox = new ComboBox<>();
@@ -895,11 +904,7 @@ public final class IaTradexApp extends Application {
         arsButton.getStyleClass().add("paper-currency-toggle");
         usdButton.getStyleClass().add("paper-currency-toggle");
 
-        HBox currencySelector = new HBox(
-                4,
-                arsButton,
-                usdButton
-        );
+        HBox currencySelector = new HBox(4, arsButton, usdButton);
         currencySelector.getStyleClass().add("paper-currency-selector");
 
         String initialCurrency = currentAnalysis != null
@@ -931,8 +936,12 @@ public final class IaTradexApp extends Application {
         accountCards.setAlignment(Pos.CENTER_LEFT);
         accountCards.setPrefWrapLength(900);
 
-        TableView<PaperPositionRow> positions = createPaperPositionsTable();
-        TableView<PaperHistoryRow> history = createPaperHistoryTable();
+        TableView<PaperPositionRow> positions =
+                createPaperPositionsTable();
+        TableView<PaperHistoryRow> history =
+                createPaperHistoryTable();
+        TableView<PaperAutoLogRow> autoLog =
+                createPaperAutoLogTable();
 
         Button buyCurrent = new Button("Comprar activo actual");
         buyCurrent.getStyleClass().add("primary-button");
@@ -943,19 +952,141 @@ public final class IaTradexApp extends Application {
         Button configureCapital = new Button("Capital inicial");
         configureCapital.getStyleClass().add("secondary-button");
 
+        Button refreshNow = new Button("Actualizar ahora");
+        refreshNow.getStyleClass().add("secondary-button");
+
         Label activeAccount = new Label();
         activeAccount.getStyleClass().add("paper-active-account");
+
+        Label lastUpdate = new Label("Última actualización: pendiente");
+        lastUpdate.getStyleClass().add("paper-last-update");
+
+        Label autoStatus = new Label(
+                "PRECIOS · cada 60 s · Stop/Take activos"
+        );
+        autoStatus.getStyleClass().add("paper-auto-status");
 
         java.util.function.Supplier<String> selectedCurrency = () ->
                 usdButton.isSelected() ? "USD" : "ARS";
 
-        Runnable refresh = () -> {
+        // ---------------- Auto strategy controls ----------------
+        CheckBox autoEnabled = new CheckBox("Automático");
+        autoEnabled.getStyleClass().add("paper-auto-checkbox");
+
+        ComboBox<String> autoStrategy = new ComboBox<>();
+        for (StrategyType type : StrategyType.values()) {
+            autoStrategy.getItems().add(type.name());
+        }
+        autoStrategy.setValue(StrategyType.MOMENTUM.name());
+        autoStrategy.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(
+                        empty || item == null
+                                ? null
+                                : StrategyType.valueOf(item).displayName()
+                );
+            }
+        });
+        autoStrategy.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(
+                        empty || item == null
+                                ? null
+                                : StrategyType.valueOf(item).displayName()
+                );
+            }
+        });
+        fixedWidth(autoStrategy, 150);
+
+        TextField maxCapitalField = new TextField("2000");
+        maxCapitalField.setPromptText("Capital máximo");
+        fixedWidth(maxCapitalField, 120);
+
+        TextField riskField = new TextField("1");
+        riskField.setPromptText("1");
+        fixedWidth(riskField, 70);
+
+        TextField stopPctField = new TextField("2");
+        stopPctField.setPromptText("2");
+        fixedWidth(stopPctField, 70);
+
+        TextField takePctField = new TextField("4");
+        takePctField.setPromptText("4");
+        fixedWidth(takePctField, 70);
+
+        Label autoAssetLabel = new Label("Activo AUTO: sin configurar");
+        autoAssetLabel.getStyleClass().add("paper-auto-asset");
+
+        Label autoRunStatus = new Label("AUTO estrategias: pausado");
+        autoRunStatus.getStyleClass().add("paper-auto-run-status");
+
+        Button useCurrentForAuto = new Button("Usar activo analizado");
+        useCurrentForAuto.getStyleClass().add("secondary-button");
+
+        Button saveAuto = new Button("Guardar AUTO");
+        saveAuto.getStyleClass().add("primary-button");
+
+        PaperAutoConfig storedAuto = paperTradingService.autoConfig();
+
+        if (storedAuto != null) {
+            autoEnabled.setSelected(storedAuto.enabled());
+
+            if (storedAuto.strategy() != null
+                    && !storedAuto.strategy().isBlank()) {
+                autoStrategy.setValue(storedAuto.strategy());
+            }
+
+            maxCapitalField.setText(
+                    String.format("%.2f", storedAuto.maxCapital())
+            );
+            riskField.setText(
+                    String.format("%.2f", storedAuto.riskPct())
+            );
+            stopPctField.setText(
+                    String.format("%.2f", storedAuto.stopLossPct())
+            );
+            takePctField.setText(
+                    String.format("%.2f", storedAuto.takeProfitPct())
+            );
+
+            if (storedAuto.symbol() != null
+                    && !storedAuto.symbol().isBlank()) {
+                autoAssetLabel.setText(
+                        "Activo AUTO: "
+                                + storedAuto.symbol()
+                                + " · "
+                                + storedAuto.timeframe()
+                                + " · "
+                                + storedAuto.period()
+                );
+            }
+
+            autoRunStatus.setText(
+                    storedAuto.enabled()
+                            ? "AUTO estrategias: ACTIVO"
+                            : "AUTO estrategias: pausado"
+            );
+        }
+
+        final AnalysisResult[] autoTarget = new AnalysisResult[1];
+
+        if (currentAnalysis != null
+                && storedAuto.symbol() != null
+                && storedAuto.symbol().equalsIgnoreCase(
+                        currentAnalysis.symbol()
+                )) {
+            autoTarget[0] = currentAnalysis;
+        }
+
+        Runnable refreshUi = () -> {
             String currency = selectedCurrency.get();
             PaperAccount account = paperTradingService.account(currency);
 
-            activeAccount.setText(
-                    "Cuenta activa: " + currency
-            );
+            activeAccount.setText("Cuenta activa: " + currency);
 
             initialCapital.setText(
                     paperMoney(account.initialCapital(), currency)
@@ -987,9 +1118,9 @@ public final class IaTradexApp extends Application {
             positions.setItems(
                     FXCollections.observableArrayList(
                             paperTradingService.state().positions.stream()
-                                    .filter(p ->
+                                    .filter(position ->
                                             currency.equalsIgnoreCase(
-                                                    p.currency()
+                                                    position.currency()
                                             )
                                     )
                                     .map(PaperPositionRow::new)
@@ -1000,21 +1131,335 @@ public final class IaTradexApp extends Application {
             history.setItems(
                     FXCollections.observableArrayList(
                             paperTradingService.state().history.stream()
-                                    .filter(t ->
+                                    .filter(trade ->
                                             currency.equalsIgnoreCase(
-                                                    t.currency()
+                                                    trade.currency()
                                             )
                                     )
                                     .map(PaperHistoryRow::new)
                                     .toList()
                     )
             );
+
+            autoLog.setItems(
+                    FXCollections.observableArrayList(
+                            paperTradingService.autoLog().stream()
+                                    .map(PaperAutoLogRow::new)
+                                    .toList()
+                    )
+            );
         };
+
+        AtomicBoolean refreshing = new AtomicBoolean(false);
+        AtomicBoolean autoRunning = new AtomicBoolean(false);
+
+        Runnable refreshMarket = () -> {
+            if (!refreshing.compareAndSet(false, true)) {
+                return;
+            }
+
+            refreshNow.setDisable(true);
+            lastUpdate.setText("Actualizando posiciones...");
+
+            Task<PaperRefreshResult> task = new Task<>() {
+                @Override
+                protected PaperRefreshResult call() throws Exception {
+                    return paperTradingService.refreshOpenPositions(
+                            marketService
+                    );
+                }
+            };
+
+            task.setOnSucceeded(e -> {
+                PaperRefreshResult result = task.getValue();
+
+                refreshUi.run();
+                lastUpdate.setText(
+                        "Última actualización: "
+                                + paperUpdateTime(result.updatedAt())
+                                + " · "
+                                + result.updatedPositions()
+                                + " actualizadas"
+                                + (
+                                result.closedPositions() > 0
+                                        ? " · "
+                                        + result.closedPositions()
+                                        + " cerradas por Stop/Take"
+                                        : ""
+                        )
+                );
+
+                refreshing.set(false);
+                refreshNow.setDisable(false);
+            });
+
+            task.setOnFailed(e -> {
+                Throwable error = task.getException();
+
+                lastUpdate.setText(
+                        "Actualización con error: "
+                                + (
+                                error == null
+                                        ? "desconocido"
+                                        : error.getMessage()
+                        )
+                );
+
+                refreshing.set(false);
+                refreshNow.setDisable(false);
+            });
+
+            Thread thread = new Thread(
+                    task,
+                    "paper-trading-refresh"
+            );
+            thread.setDaemon(true);
+            thread.start();
+        };
+
+        Runnable runAutoStrategy = () -> {
+            PaperAutoConfig config = paperTradingService.autoConfig();
+
+            if (config == null || !config.enabled()) {
+                autoRunStatus.setText("AUTO estrategias: pausado");
+                return;
+            }
+
+            if (!autoRunning.compareAndSet(false, true)) {
+                return;
+            }
+
+            autoRunStatus.setText(
+                    "AUTO estrategias: evaluando "
+                            + config.symbol()
+                            + "..."
+            );
+
+            Task<PaperAutoResult> task = new Task<>() {
+                @Override
+                protected PaperAutoResult call() throws Exception {
+                    return paperAutoTradingEngine.runOnce(config);
+                }
+            };
+
+            task.setOnSucceeded(e -> {
+                PaperAutoResult result = task.getValue();
+
+                autoRunStatus.setText(
+                        "AUTO estrategias: "
+                                + result.action()
+                                + " · "
+                                + result.message()
+                );
+
+                lastUpdate.setText(
+                        "Última evaluación AUTO: "
+                                + paperUpdateTime(result.timestamp())
+                );
+
+                refreshUi.run();
+                autoRunning.set(false);
+            });
+
+            task.setOnFailed(e -> {
+                Throwable error = task.getException();
+
+                autoRunStatus.setText(
+                        "AUTO estrategias: ERROR · "
+                                + (
+                                error == null
+                                        ? "desconocido"
+                                        : error.getMessage()
+                        )
+                );
+
+                try {
+                    paperTradingService.addAutoLog(
+                            "ERROR",
+                            error == null
+                                    ? "Error desconocido"
+                                    : error.getMessage()
+                    );
+                } catch (Exception ignored) {
+                }
+
+                refreshUi.run();
+                autoRunning.set(false);
+            });
+
+            Thread thread = new Thread(
+                    task,
+                    "paper-auto-strategy"
+            );
+            thread.setDaemon(true);
+            thread.start();
+        };
+
+        useCurrentForAuto.setOnAction(e -> {
+            if (currentAnalysis == null) {
+                showPaperError(
+                        "Primero analizá un activo en la pantalla principal."
+                );
+                return;
+            }
+
+            autoTarget[0] = currentAnalysis;
+
+            maxCapitalField.setText(
+                    "ARS".equalsIgnoreCase(currentAnalysis.currency())
+                            ? "200000"
+                            : "2000"
+            );
+
+            autoAssetLabel.setText(
+                    "Activo AUTO: "
+                            + currentAnalysis.symbol()
+                            + " · "
+                            + currentAnalysis.timeframe()
+                            + " · "
+                            + currentAnalysis.period()
+            );
+
+            if ("USD".equalsIgnoreCase(currentAnalysis.currency())) {
+                usdButton.setSelected(true);
+            } else {
+                arsButton.setSelected(true);
+            }
+        });
+
+        saveAuto.setOnAction(e -> {
+            AnalysisResult target = autoTarget[0];
+
+            if (target == null) {
+                PaperAutoConfig previous = paperTradingService.autoConfig();
+
+                if (previous != null
+                        && previous.symbol() != null
+                        && !previous.symbol().isBlank()) {
+                    try {
+                        PaperAutoConfig updated = new PaperAutoConfig(
+                                autoEnabled.isSelected(),
+                                previous.symbol(),
+                                previous.marketType(),
+                                previous.source(),
+                                previous.currency(),
+                                previous.timeframe(),
+                                previous.period(),
+                                autoStrategy.getValue(),
+                                parsePaperNumber(
+                                        maxCapitalField.getText(),
+                                        true
+                                ),
+                                parsePaperNumber(
+                                        riskField.getText(),
+                                        true
+                                ),
+                                parsePaperNumber(
+                                        stopPctField.getText(),
+                                        true
+                                ),
+                                parsePaperNumber(
+                                        takePctField.getText(),
+                                        true
+                                )
+                        );
+
+                        validatePaperAutoConfig(updated);
+                        paperTradingService.setAutoConfig(updated);
+
+                        autoRunStatus.setText(
+                                updated.enabled()
+                                        ? "AUTO estrategias: ACTIVO"
+                                        : "AUTO estrategias: pausado"
+                        );
+
+                        return;
+                    } catch (Exception ex) {
+                        showPaperError(ex.getMessage());
+                        return;
+                    }
+                }
+
+                showPaperError(
+                        "Elegí 'Usar activo analizado' para configurar el automático."
+                );
+                return;
+            }
+
+            try {
+                PaperAutoConfig config = new PaperAutoConfig(
+                        autoEnabled.isSelected(),
+                        target.symbol(),
+                        target.marketType(),
+                        target.source(),
+                        target.currency(),
+                        target.timeframe(),
+                        target.period(),
+                        autoStrategy.getValue(),
+                        parsePaperNumber(
+                                maxCapitalField.getText(),
+                                true
+                        ),
+                        parsePaperNumber(
+                                riskField.getText(),
+                                true
+                        ),
+                        parsePaperNumber(
+                                stopPctField.getText(),
+                                true
+                        ),
+                        parsePaperNumber(
+                                takePctField.getText(),
+                                true
+                        )
+                );
+
+                validatePaperAutoConfig(config);
+                paperTradingService.setAutoConfig(config);
+
+                autoAssetLabel.setText(
+                        "Activo AUTO: "
+                                + config.symbol()
+                                + " · "
+                                + config.timeframe()
+                                + " · "
+                                + config.period()
+                );
+
+                autoRunStatus.setText(
+                        config.enabled()
+                                ? "AUTO estrategias: ACTIVO"
+                                : "AUTO estrategias: pausado"
+                );
+
+                paperTradingService.addAutoLog(
+                        "CONFIG",
+                        config.enabled()
+                                ? "Automatización activada: "
+                                + config.symbol()
+                                + " · "
+                                + StrategyType
+                                        .valueOf(config.strategy())
+                                        .displayName()
+                                : "Automatización pausada."
+                );
+
+                refreshUi.run();
+
+                if (config.enabled()) {
+                    runAutoStrategy.run();
+                }
+            } catch (Exception ex) {
+                showPaperError(ex.getMessage());
+            }
+        });
 
         currencyGroup.selectedToggleProperty().addListener(
                 (obs, oldToggle, newToggle) -> {
                     if (newToggle == null) {
-                        if ("USD".equalsIgnoreCase(selectedCurrency.get())) {
+                        if ("USD".equalsIgnoreCase(
+                                selectedCurrency.get()
+                        )) {
                             usdButton.setSelected(true);
                         } else {
                             arsButton.setSelected(true);
@@ -1022,7 +1467,7 @@ public final class IaTradexApp extends Application {
                         return;
                     }
 
-                    refresh.run();
+                    refreshUi.run();
                 }
         );
 
@@ -1037,6 +1482,7 @@ public final class IaTradexApp extends Application {
                                     .initialCapital()
                     )
             );
+
             dialog.setTitle("Capital inicial");
             dialog.setHeaderText(
                     "Cuenta simulada " + currency
@@ -1054,7 +1500,7 @@ public final class IaTradexApp extends Application {
                             amount
                     );
 
-                    refresh.run();
+                    refreshUi.run();
                 } catch (Exception ex) {
                     showPaperError(ex.getMessage());
                 }
@@ -1064,21 +1510,20 @@ public final class IaTradexApp extends Application {
         buyCurrent.setOnAction(e -> {
             if (currentAnalysis == null) {
                 showPaperError(
-                        "Primero ejecutá un análisis de mercado para tener un precio actual."
+                        "Primero ejecutá un análisis de mercado "
+                                + "para tener un precio actual."
                 );
                 return;
             }
 
-            String analysisCurrency = currentAnalysis.currency();
-
-            if ("USD".equalsIgnoreCase(analysisCurrency)) {
+            if ("USD".equalsIgnoreCase(currentAnalysis.currency())) {
                 usdButton.setSelected(true);
             } else {
                 arsButton.setSelected(true);
             }
 
-            refresh.run();
-            showBuyPaperTrade(refresh);
+            refreshUi.run();
+            showBuyPaperTrade(refreshUi);
         });
 
         closeSelected.setOnAction(e -> {
@@ -1101,6 +1546,7 @@ public final class IaTradexApp extends Application {
             TextInputDialog dialog = new TextInputDialog(
                     String.format("%.4f", currentPrice)
             );
+
             dialog.setTitle("Cerrar posición");
             dialog.setHeaderText(
                     position.symbol()
@@ -1124,11 +1570,21 @@ public final class IaTradexApp extends Application {
                             "Cierre manual"
                     );
 
-                    refresh.run();
+                    refreshUi.run();
                 } catch (Exception ex) {
                     showPaperError(ex.getMessage());
                 }
             });
+        });
+
+        refreshNow.setOnAction(e -> {
+            PaperAutoConfig config = paperTradingService.autoConfig();
+
+            if (config != null && config.enabled()) {
+                runAutoStrategy.run();
+            } else {
+                refreshMarket.run();
+            }
         });
 
         Region headerSpacer = new Region();
@@ -1143,17 +1599,45 @@ public final class IaTradexApp extends Application {
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("paper-header");
 
+        Region actionSpacer = new Region();
+
         HBox actionBar = new HBox(
                 10,
                 activeAccount,
-                new Region(),
+                autoStatus,
+                actionSpacer,
+                refreshNow,
                 configureCapital,
                 buyCurrent,
                 closeSelected
         );
-        HBox.setHgrow(actionBar.getChildren().get(1), Priority.ALWAYS);
+        HBox.setHgrow(actionSpacer, Priority.ALWAYS);
         actionBar.setAlignment(Pos.CENTER_LEFT);
         actionBar.getStyleClass().add("paper-action-bar");
+
+        FlowPane autoControls = new FlowPane(10, 8);
+        autoControls.setAlignment(Pos.CENTER_LEFT);
+        autoControls.getStyleClass().add("paper-auto-config");
+
+        autoControls.getChildren().addAll(
+                autoEnabled,
+                labeledPaperControl("Estrategia", autoStrategy),
+                labeledPaperControl("Capital máx.", maxCapitalField),
+                labeledPaperControl("Riesgo %", riskField),
+                labeledPaperControl("Stop %", stopPctField),
+                labeledPaperControl("Take %", takePctField),
+                useCurrentForAuto,
+                saveAuto
+        );
+
+        VBox autoPanel = new VBox(
+                8,
+                autoAssetLabel,
+                autoControls,
+                autoRunStatus
+        );
+        autoPanel.getStyleClass().add("paper-auto-panel");
+        autoPanel.setPadding(new Insets(12));
 
         Tab positionsTab = new Tab(
                 "Posiciones abiertas",
@@ -1167,9 +1651,16 @@ public final class IaTradexApp extends Application {
         );
         historyTab.setClosable(false);
 
+        Tab autoLogTab = new Tab(
+                "Actividad AUTO",
+                autoLog
+        );
+        autoLogTab.setClosable(false);
+
         TabPane tabs = new TabPane(
                 positionsTab,
-                historyTab
+                historyTab,
+                autoLogTab
         );
         tabs.setTabClosingPolicy(
                 TabPane.TabClosingPolicy.UNAVAILABLE
@@ -1177,25 +1668,34 @@ public final class IaTradexApp extends Application {
         VBox.setVgrow(tabs, Priority.ALWAYS);
 
         Label note = new Label(
-                "Los precios de posiciones abiertas se actualizan cuando analizás nuevamente ese activo. "
-                        + "Stop Loss y Take Profit quedan registrados en esta etapa manual."
+                "Precios y automatización se evalúan cada 60 segundos mientras "
+                        + "esta ventana está abierta. Las señales automáticas usan "
+                        + "la última vela cerrada para evitar operar con una vela "
+                        + "todavía en formación. Es Paper Trading: no envía órdenes reales."
         );
         note.setWrapText(true);
         note.getStyleClass().add("paper-note");
+
+        VBox footer = new VBox(
+                4,
+                lastUpdate,
+                note
+        );
 
         VBox root = new VBox(
                 14,
                 header,
                 accountCards,
                 actionBar,
+                autoPanel,
                 tabs,
-                note
+                footer
         );
 
         root.setPadding(new Insets(18));
         root.getStyleClass().add("paper-root");
 
-        Scene scene = new Scene(root, 1250, 720);
+        Scene scene = new Scene(root, 1320, 800);
         scene.getStylesheets().add(
                 IaTradexApp.class
                         .getResource("/com/iatradex/theme.css")
@@ -1203,8 +1703,8 @@ public final class IaTradexApp extends Application {
         );
 
         window.setScene(scene);
-        window.setMinWidth(760);
-        window.setMinHeight(560);
+        window.setMinWidth(820);
+        window.setMinHeight(640);
 
         try {
             window.getIcons().add(
@@ -1217,8 +1717,93 @@ public final class IaTradexApp extends Application {
         } catch (Exception ignored) {
         }
 
-        refresh.run();
+        Timeline autoRefresh = new Timeline(
+                new KeyFrame(
+                        Duration.seconds(60),
+                        e -> {
+                            PaperAutoConfig config =
+                                    paperTradingService.autoConfig();
+
+                            if (config != null && config.enabled()) {
+                                runAutoStrategy.run();
+                            } else {
+                                refreshMarket.run();
+                            }
+                        }
+                )
+        );
+        autoRefresh.setCycleCount(Timeline.INDEFINITE);
+
+        window.setOnShown(e -> {
+            refreshUi.run();
+
+            PaperAutoConfig config = paperTradingService.autoConfig();
+
+            if (config != null && config.enabled()) {
+                runAutoStrategy.run();
+            } else {
+                refreshMarket.run();
+            }
+
+            autoRefresh.play();
+        });
+
+        window.setOnHidden(e -> autoRefresh.stop());
+
         window.show();
+    }
+
+    private VBox labeledPaperControl(
+            String captionText,
+            Node control
+    ) {
+        Label caption = new Label(captionText);
+        caption.getStyleClass().add("paper-account-caption");
+
+        VBox box = new VBox(4, caption, control);
+        box.setAlignment(Pos.CENTER_LEFT);
+        return box;
+    }
+
+    private void validatePaperAutoConfig(
+            PaperAutoConfig config
+    ) {
+        if (config.maxCapital() <= 0.0) {
+            throw new IllegalArgumentException(
+                    "El capital máximo debe ser mayor que cero."
+            );
+        }
+
+        if (config.riskPct() <= 0.0 || config.riskPct() > 100.0) {
+            throw new IllegalArgumentException(
+                    "El riesgo debe estar entre 0 y 100%."
+            );
+        }
+
+        if (config.stopLossPct() <= 0.0
+                || config.stopLossPct() >= 100.0) {
+            throw new IllegalArgumentException(
+                    "El Stop Loss debe estar entre 0 y 100%."
+            );
+        }
+
+        if (config.takeProfitPct() <= 0.0) {
+            throw new IllegalArgumentException(
+                    "El Take Profit debe ser mayor que 0%."
+            );
+        }
+    }
+
+
+    private String paperUpdateTime(String instantText) {
+        try {
+            return DateTimeFormatter
+                    .ofPattern("HH:mm:ss")
+                    .withZone(ZoneId.systemDefault())
+                    .format(Instant.parse(instantText));
+        } catch (Exception ignored) {
+            return "ahora";
+        }
     }
 
     private void showBuyPaperTrade(Runnable refresh) {
@@ -1294,6 +1879,8 @@ public final class IaTradexApp extends Application {
                 paperTradingService.buy(
                         analysis.symbol(),
                         humanMarket(analysis.marketType()),
+                        analysis.marketType(),
+                        analysis.source(),
                         currency,
                         qty,
                         price,
@@ -1448,6 +2035,35 @@ public final class IaTradexApp extends Application {
                 pnl,
                 context,
                 reason
+        );
+
+        return table;
+    }
+
+    private TableView<PaperAutoLogRow> createPaperAutoLogTable() {
+        TableView<PaperAutoLogRow> table = new TableView<>();
+        table.setColumnResizePolicy(
+                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
+        );
+
+        TableColumn<PaperAutoLogRow, String> time =
+                new TableColumn<>("Hora");
+        time.setCellValueFactory(v -> v.getValue().timeProperty());
+        time.setPrefWidth(130);
+
+        TableColumn<PaperAutoLogRow, String> level =
+                new TableColumn<>("Evento");
+        level.setCellValueFactory(v -> v.getValue().levelProperty());
+        level.setPrefWidth(100);
+
+        TableColumn<PaperAutoLogRow, String> message =
+                new TableColumn<>("Detalle");
+        message.setCellValueFactory(v -> v.getValue().messageProperty());
+
+        table.getColumns().addAll(
+                time,
+                level,
+                message
         );
 
         return table;

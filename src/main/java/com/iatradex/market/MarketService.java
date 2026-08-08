@@ -79,4 +79,46 @@ public final class MarketService {
 
         return null;
     }
+
+    public double livePrice(
+            String marketType,
+            String source,
+            String symbol
+    ) throws Exception {
+
+        if ("crypto".equals(marketType)) {
+            return switch (
+                    source == null
+                            ? "binance"
+                            : source.toLowerCase()
+            ) {
+                case "kraken" -> kraken.livePrice(symbol);
+                default -> binance.livePrice(symbol);
+            };
+        }
+
+        if ("argentina".equals(marketType)) {
+            MarketQuote quote = argentina.quote(symbol);
+
+            if (quote == null
+                    || quote.lastPrice() == null
+                    || !Double.isFinite(quote.lastPrice())
+                    || quote.lastPrice() <= 0.0) {
+                throw new IllegalStateException(
+                        "Open BYMADATA no devolvió precio para " + symbol
+                );
+            }
+
+            return quote.lastPrice();
+        }
+
+        if ("stocks".equals(marketType)) {
+            return yahoo.livePrice(symbol);
+        }
+
+        throw new IllegalArgumentException(
+                "Mercado no soportado: " + marketType
+        );
+    }
+
 }
