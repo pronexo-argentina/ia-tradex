@@ -4,7 +4,7 @@ set -euo pipefail
 APP_NAME="IA-TradeX"
 VERSION="1.0.0"
 MAIN_CLASS="com.iatradex.Launcher"
-MAIN_JAR="ia-tradex-0.1.0-SNAPSHOT.jar"
+MAIN_JAR="ia-tradex-1.0.0.jar"
 
 if ! command -v java >/dev/null 2>&1; then
   echo "ERROR: Java no está instalado."

@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +35,146 @@ public final class PaperTradingService {
         return state;
     }
 
+
+
+    public synchronized PaperPortfolioAutoConfig portfolioAutoConfig() {
+        if (state.portfolioAutoConfig == null) {
+            state.portfolioAutoConfig =
+                    PaperPortfolioAutoConfig.disabled();
+        } else {
+            state.portfolioAutoConfig =
+                    state.portfolioAutoConfig.normalized();
+        }
+        return state.portfolioAutoConfig;
+    }
+
+    public synchronized void setPortfolioAutoConfig(
+            PaperPortfolioAutoConfig config
+    ) throws IOException {
+        state.portfolioAutoConfig = config == null
+                ? PaperPortfolioAutoConfig.disabled()
+                : config.normalized();
+        save();
+    }
+
+    public synchronized void setPortfolioRanking(
+            List<PaperPortfolioCandidate> ranking
+    ) throws IOException {
+        state.portfolioRanking = ranking == null
+                ? new ArrayList<>()
+                : new ArrayList<>(ranking);
+        save();
+    }
+
+    public synchronized List<PaperPortfolioCandidate> portfolioRanking() {
+        if (state.portfolioRanking == null) {
+            state.portfolioRanking = new ArrayList<>();
+        }
+        return List.copyOf(state.portfolioRanking);
+    }
+
+    public synchronized List<PaperPosition> positionsSnapshot() {
+        return List.copyOf(state.positions);
+    }
+
+    public synchronized int openPositionCount() {
+        return state.positions.size();
+    }
+
+    public synchronized int openPositionCountByMarket(
+            String marketType
+    ) {
+        return (int) state.positions.stream()
+                .filter(p ->
+                        p.resolvedMarketType()
+                                .equalsIgnoreCase(marketType)
+                )
+                .count();
+    }
+
+    public synchronized double marketExposureAmount(
+            String currency,
+            String marketType
+    ) {
+        return state.positions.stream()
+                .filter(p ->
+                        currency.equalsIgnoreCase(p.currency())
+                                && p.resolvedMarketType()
+                                .equalsIgnoreCase(marketType)
+                )
+                .mapToDouble(PaperPosition::marketValue)
+                .sum();
+    }
+
+    public synchronized double totalExposureAmount(
+            String currency
+    ) {
+        return state.positions.stream()
+                .filter(p ->
+                        currency.equalsIgnoreCase(p.currency())
+                )
+                .mapToDouble(PaperPosition::marketValue)
+                .sum();
+    }
+
+    public synchronized double exposurePct(
+            String currency
+    ) {
+        double equity = equity(currency);
+
+        if (equity <= 0.0) {
+            return 0.0;
+        }
+
+        return totalExposureAmount(currency)
+                / equity
+                * 100.0;
+    }
+
+    public synchronized double openRiskPct(
+            String currency
+    ) {
+        double equity = equity(currency);
+
+        if (equity <= 0.0) {
+            return 0.0;
+        }
+
+        return openRiskAmount(currency)
+                / equity
+                * 100.0;
+    }
+
+    public synchronized boolean hasOpenPosition(
+            String symbol,
+            String currency
+    ) {
+        return state.positions.stream()
+                .anyMatch(p ->
+                        p.symbol().equalsIgnoreCase(symbol)
+                                && p.currency().equalsIgnoreCase(currency)
+                );
+    }
+
+    public synchronized double openRiskAmount(
+            String currency
+    ) {
+        return state.positions.stream()
+                .filter(p ->
+                        currency.equalsIgnoreCase(p.currency())
+                )
+                .mapToDouble(p -> {
+                    if (p.stopLoss() == null
+                            || p.stopLoss() <= 0.0
+                            || p.stopLoss() >= p.entryPrice()) {
+                        return 0.0;
+                    }
+
+                    return p.quantity()
+                            * (p.entryPrice() - p.stopLoss());
+                })
+                .sum();
+    }
 
     public synchronized PaperAutoConfig autoConfig() {
         if (state.autoConfig == null) {
@@ -407,6 +549,49 @@ public final class PaperTradingService {
                 .sum();
     }
 
+    public synchronized void exportHistoryCsv(
+            Path target
+    ) throws IOException {
+        StringBuilder out = new StringBuilder();
+        out.append(
+                "id,symbol,market,currency,quantity,entry_price,exit_price,"
+                        + "pnl,pnl_pct,strategy,regime,opened_at,closed_at,reason\n"
+        );
+
+        for (PaperClosedTrade trade : state.history) {
+            out.append(csv(trade.id())).append(',')
+                    .append(csv(trade.symbol())).append(',')
+                    .append(csv(trade.market())).append(',')
+                    .append(csv(trade.currency())).append(',')
+                    .append(trade.quantity()).append(',')
+                    .append(trade.entryPrice()).append(',')
+                    .append(trade.exitPrice()).append(',')
+                    .append(trade.pnl()).append(',')
+                    .append(trade.pnlPct()).append(',')
+                    .append(csv(trade.strategyContext())).append(',')
+                    .append(csv(trade.regimeContext())).append(',')
+                    .append(csv(trade.openedAt())).append(',')
+                    .append(csv(trade.closedAt())).append(',')
+                    .append(csv(trade.reason()))
+                    .append('\n');
+        }
+
+        Files.writeString(
+                target,
+                out.toString(),
+                StandardCharsets.UTF_8
+        );
+    }
+
+    private String csv(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        String escaped = value.replace("\"", "\"\"");
+        return "\"" + escaped + "\"";
+    }
+
     private void setCash(String currency, double cash) {
         if ("ARS".equalsIgnoreCase(currency)) {
             state.ars = state.ars.withCash(cash);
@@ -472,6 +657,18 @@ public final class PaperTradingService {
                 loaded.autoConfig = PaperAutoConfig.disabled();
             }
 
+            if (loaded.portfolioAutoConfig == null) {
+                loaded.portfolioAutoConfig =
+                        PaperPortfolioAutoConfig.disabled();
+            } else {
+                loaded.portfolioAutoConfig =
+                        loaded.portfolioAutoConfig.normalized();
+            }
+
+            if (loaded.portfolioRanking == null) {
+                loaded.portfolioRanking = new ArrayList<>();
+            }
+
             if (loaded.autoLog == null) {
                 loaded.autoLog = new ArrayList<>();
             }
@@ -484,6 +681,37 @@ public final class PaperTradingService {
 
     private void save() throws IOException {
         Files.createDirectories(storage.getParent());
-        mapper.writeValue(storage.toFile(), state);
+
+        Path temp = storage.resolveSibling(
+                storage.getFileName() + ".tmp"
+        );
+        Path backup = storage.resolveSibling(
+                storage.getFileName() + ".bak"
+        );
+
+        mapper.writeValue(temp.toFile(), state);
+
+        if (Files.exists(storage)) {
+            Files.copy(
+                    storage,
+                    backup,
+                    StandardCopyOption.REPLACE_EXISTING
+            );
+        }
+
+        try {
+            Files.move(
+                    temp,
+                    storage,
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE
+            );
+        } catch (Exception ex) {
+            Files.move(
+                    temp,
+                    storage,
+                    StandardCopyOption.REPLACE_EXISTING
+            );
+        }
     }
 }

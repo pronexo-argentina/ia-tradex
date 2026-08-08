@@ -9,5 +9,7 @@ public final class PaperTradingState {
     public List<PaperPosition> positions = new ArrayList<>();
     public List<PaperClosedTrade> history = new ArrayList<>();
     public PaperAutoConfig autoConfig = PaperAutoConfig.disabled();
+    public PaperPortfolioAutoConfig portfolioAutoConfig = PaperPortfolioAutoConfig.disabled();
+    public List<PaperPortfolioCandidate> portfolioRanking = new ArrayList<>();
     public List<PaperAutoLogEntry> autoLog = new ArrayList<>();
 }

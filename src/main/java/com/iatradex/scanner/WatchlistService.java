@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -136,6 +137,37 @@ public final class WatchlistService {
 
     private void save() throws IOException {
         Files.createDirectories(storage.getParent());
-        mapper.writeValue(storage.toFile(), state);
+
+        Path temp = storage.resolveSibling(
+                storage.getFileName() + ".tmp"
+        );
+        Path backup = storage.resolveSibling(
+                storage.getFileName() + ".bak"
+        );
+
+        mapper.writeValue(temp.toFile(), state);
+
+        if (Files.exists(storage)) {
+            Files.copy(
+                    storage,
+                    backup,
+                    StandardCopyOption.REPLACE_EXISTING
+            );
+        }
+
+        try {
+            Files.move(
+                    temp,
+                    storage,
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE
+            );
+        } catch (Exception ex) {
+            Files.move(
+                    temp,
+                    storage,
+                    StandardCopyOption.REPLACE_EXISTING
+            );
+        }
     }
 }

@@ -1,306 +1,303 @@
 # IA-TradeX
 
-![Java](https://img.shields.io/badge/Java-21-orange)
+**IA-TradeX** es una aplicación de escritorio 100% Java para análisis técnico, backtesting, Scanner, Paper Trading y gestión automatizada de una cartera simulada.
+
+La v1.0.0 cierra la primera base funcional completa del proyecto. No envía órdenes reales y no requiere Python.
+
+![Java](https://img.shields.io/badge/Java-21-blue)
 ![JavaFX](https://img.shields.io/badge/JavaFX-23-blue)
-![Architecture](https://img.shields.io/badge/Architecture-100%25%20Java-success)
-![License](https://img.shields.io/badge/License-AGPLv3-blue)
-![Status](https://img.shields.io/badge/status-active%20development-yellow)
+![License](https://img.shields.io/badge/License-AGPL--3.0-green)
+![Version](https://img.shields.io/badge/version-1.0.0-brightgreen)
 
-**IA-TradeX** es una plataforma open source de análisis de mercados, backtesting y experimentación cuantitativa desarrollada **100% en Java**.
+## Qué incluye la v1.0.0
 
-No requiere Python, FastAPI, `uvicorn` ni entornos virtuales. La aplicación JavaFX obtiene datos de mercado directamente y ejecuta indicadores, estrategias, backtesting, métricas y clasificación de régimen dentro del mismo proceso Java.
+- análisis de **Criptomonedas, Argentina e Internacional**;
+- Binance y Kraken para Crypto;
+- Yahoo Finance para Internacional;
+- Open BYMADATA para Argentina;
+- indicadores EMA 12/26, RSI 14 y ATR 14;
+- detección de régimen de mercado;
+- estrategias EMA Cross, Momentum, Mean Reversion y Breakout;
+- backtesting sin look-ahead con comisión y slippage simulados;
+- comparación contra Buy & Hold;
+- Watchlists persistentes;
+- Scanner manual y automático;
+- Score técnico explicable de 0 a 100;
+- Paper Trading manual con cuentas ARS y USD;
+- Stop Loss y Take Profit automáticos;
+- AUTO por activo;
+- Cartera AUTO multi-activo;
+- límites globales y por mercado;
+- control de riesgo y exposición;
+- ranking continuo de candidatos;
+- Dashboard de Performance;
+- estadísticas por estrategia, mercado y régimen;
+- exportación de operaciones y estadísticas a CSV;
+- persistencia local con backup `.bak`;
+- packaging macOS `.app` y `.dmg`;
+- menú nativo de macOS;
+- licencia GNU AGPL v3.0.
 
-> Proyecto educativo, de investigación y desarrollo de software.  
-> No constituye asesoramiento financiero ni garantiza resultados futuros.
+> IA-TradeX es una herramienta de investigación y simulación. Los resultados históricos no garantizan resultados futuros y no constituyen asesoramiento financiero.
 
 ## Capturas
 
 ### Dashboard · Criptomonedas
 
-![Dashboard de criptomonedas](https://raw.githubusercontent.com/pronexo-argentina/ia-tradex/main/docs/images/dashboard-crypto.png)
+![Dashboard Crypto](https://raw.githubusercontent.com/pronexo-argentina/ia-tradex/main/docs/images/dashboard-crypto.png)
 
-### Dashboard · Mercado argentino
+### Dashboard · Argentina
 
-![Dashboard de mercado argentino](https://raw.githubusercontent.com/pronexo-argentina/ia-tradex/main/docs/images/dashboard-argentina.png)
+![Dashboard Argentina](https://raw.githubusercontent.com/pronexo-argentina/ia-tradex/main/docs/images/dashboard-argentina.png)
 
 ### Análisis técnico · Argentina
 
-![Análisis técnico de YPFD](https://raw.githubusercontent.com/pronexo-argentina/ia-tradex/main/docs/images/analysis-argentina.png)
+![Análisis Argentina](https://raw.githubusercontent.com/pronexo-argentina/ia-tradex/main/docs/images/analysis-argentina.png)
 
-### Análisis técnico · Criptomonedas
+### Análisis técnico · Crypto
 
-![Análisis técnico de BTC/USDT](https://raw.githubusercontent.com/pronexo-argentina/ia-tradex/main/docs/images/analysis-crypto.png)
+![Análisis Crypto](https://raw.githubusercontent.com/pronexo-argentina/ia-tradex/main/docs/images/analysis-crypto.png)
 
 ### Paper Trading
 
-![Paper Trading de IA-TradeX](https://raw.githubusercontent.com/pronexo-argentina/ia-tradex/main/docs/images/paper-trading.png)
+![Paper Trading](https://raw.githubusercontent.com/pronexo-argentina/ia-tradex/main/docs/images/paper-trading.png)
 
-## Funcionalidades actuales
+## Mercados y fuentes
 
-### Mercados
+| Mercado | Fuente | Moneda | Estado |
+|---|---|---:|---|
+| Criptomonedas | Binance / Kraken | USD/USDT | Activo |
+| Argentina | Open BYMADATA | ARS | Activo |
+| Internacional | Yahoo Finance | USD/original | Activo |
 
-**Criptomonedas**
-- Binance
-- Kraken
-- BTC/USDT
-- ETH/USDT
-- Datos OHLCV públicos por REST
+Los datos públicos de Open BYMADATA pueden tener aproximadamente 20 minutos de demora.
 
-**Argentina**
-- CEDEARs
-- Acciones argentinas
-- Open BYMADATA
-- Cotizaciones locales en ARS
-- Bid / Ask y cantidades cuando están disponibles
-- Histórico diario
-- Datos públicos con aproximadamente 20 minutos de demora
+## Análisis y backtesting
 
-**Internacional**
-- Acciones y ETF
-- Yahoo Finance
-- Búsqueda por ticker o nombre
-- Autocomplete con logo, ticker, empresa y mercado
-- Cotización internacional separada del equivalente argentino
+IA-TradeX calcula:
 
-## Estrategias
+- EMA 12;
+- EMA 26;
+- RSI 14;
+- ATR 14;
+- tendencia;
+- volatilidad;
+- régimen;
+- señal técnica;
+- métricas históricas.
 
-IA-TradeX compara actualmente cuatro estrategias:
+El backtest usa la señal de una vela cerrada y ejecuta en la apertura siguiente. Incluye comisión y slippage simulados para evitar un resultado artificialmente favorable.
 
-- **EMA Cross**
-- **Momentum**
-- **Mean Reversion**
-- **Breakout**
-
-Todas se prueban sobre el mismo histórico y con los mismos costos simulados.
-
-El comparador muestra:
-
-- retorno;
-- Profit Factor;
-- Drawdown;
-- Sharpe;
-- cantidad de operaciones;
-- mejor resultado histórico del período.
-
-**MEJOR HISTÓRICO** no significa que esa estrategia vaya a rendir mejor en el futuro.
-
-## Indicadores
-
-- EMA 12
-- EMA 26
-- RSI 14
-- ATR 14
-- cruces EMA
-- tendencia actual
-- señales técnicas explicables
-
-## Régimen de mercado
-
-IA-TradeX clasifica el contexto actual como:
-
-- ALCISTA
-- BAJISTA
-- LATERAL
-
-También clasifica:
-
-- fuerza: BAJA / MEDIA / ALTA;
-- volatilidad: BAJA / MEDIA / ALTA;
-- estrategias compatibles con el contexto.
-
-La volatilidad se compara contra el comportamiento histórico del mismo activo usando ATR porcentual.
-
-## Backtesting
-
-- señal calculada sobre la vela anterior;
-- ejecución en la apertura de la vela siguiente;
-- comisión;
-- slippage;
-- riesgo por operación;
-- stop-loss;
-- take-profit;
-- salida por señal;
-- hipótesis conservadora si stop y objetivo ocurren dentro de una misma vela.
-
-## Métricas
+Métricas principales:
 
 - capital final;
 - retorno;
 - Buy & Hold;
-- Drawdown máximo;
+- drawdown máximo;
 - Win Rate;
 - Profit Factor;
-- Sharpe Ratio;
+- Sharpe;
 - cantidad de operaciones;
-- ganancia media;
-- pérdida media.
+- ganancia y pérdida media.
 
-## Interfaz
+## Estrategias
 
-- JavaFX 23;
-- dashboard oscuro;
-- gráficos de precio y equity;
-- tabla de operaciones;
-- comparador de estrategias;
-- panel de régimen;
-- buscador/autocomplete de activos;
-- scroll vertical;
-- layout responsive;
-- aplicación macOS de doble clic.
+### EMA Cross
+Cruce de EMA rápida y lenta.
 
+### Momentum
+Busca continuidad de impulso en un contexto compatible.
+
+### Mean Reversion
+Busca posibles retornos hacia la media después de una desviación.
+
+### Breakout
+Busca ruptura de máximos recientes.
+
+La etiqueta **MEJOR HISTÓRICO** identifica solamente la estrategia con mejor resultado dentro del período analizado. No es una recomendación futura.
+
+## Régimen de mercado
+
+El motor clasifica el mercado como:
+
+- `ALCISTA`;
+- `BAJISTA`;
+- `LATERAL`.
+
+También estima:
+
+- fuerza `BAJA / MEDIA / ALTA`;
+- volatilidad `BAJA / MEDIA / ALTA`.
+
+Las estrategias compatibles se muestran según reglas explicables. Esta parte no usa Machine Learning.
+
+## Watchlist y Scanner
+
+El Scanner permite crear listas separadas para:
+
+- Argentina;
+- Internacional;
+- Crypto.
+
+Cada activo puede mostrar:
+
+- régimen;
+- volatilidad;
+- RSI;
+- estrategia seleccionada;
+- señal;
+- Score;
+- explicación.
+
+El **Score 0–100 no representa una probabilidad de ganar**. Es un ranking técnico basado en tendencia, fuerza, RSI, compatibilidad de estrategia, señal, retorno histórico y volatilidad.
+
+El Scanner puede ejecutarse manualmente o cada 60 segundos mientras su ventana permanece abierta.
 
 ## Paper Trading
 
-IA-TradeX incluye una primera etapa de **Paper Trading manual**, sin dinero real.
+Paper Trading utiliza cuentas simuladas independientes:
 
-Características actuales:
+- **ARS** para Argentina;
+- **USD** para Internacional y Crypto.
 
-- cuentas simuladas independientes en **ARS** y **USD**;
-- capital inicial configurable;
-- saldo disponible;
-- equity;
-- P&L no realizado;
-- compra manual del activo analizado;
-- cierre manual de posiciones;
-- cantidad, precio de entrada y precio actual;
-- Stop Loss y Take Profit registrados;
-- estrategia/contexto elegido al abrir;
-- régimen de mercado registrado al abrir;
-- historial de operaciones cerradas;
-- persistencia local automática.
+Permite:
 
-Los datos se guardan en:
+- configurar capital inicial;
+- comprar manualmente el activo analizado;
+- cerrar posiciones;
+- Stop Loss y Take Profit;
+- actualizar precios;
+- consultar equity y P&L;
+- conservar historial.
+
+Estado local:
 
 ```text
 ~/.ia-tradex/paper-trading.json
 ```
 
-El precio actual de una posición se actualiza cuando se vuelve a analizar ese activo en IA-TradeX.
+## AUTO por activo
 
-**Importante:** esta etapa no envía órdenes a brokers ni exchanges.
+El modo AUTO puede administrar un activo con:
 
-Mientras la ventana de Paper Trading está abierta, IA-TradeX actualiza automáticamente las posiciones cada **60 segundos**. Si el último precio consultado alcanza un Stop Loss o Take Profit configurado, la posición simulada se cierra automáticamente y el motivo queda registrado en el historial.
+- estrategia;
+- capital máximo;
+- riesgo por operación;
+- Stop Loss;
+- Take Profit.
 
-La ejecución es una simulación por sondeo periódico: no es tick a tick y el precio de cierre utilizado es el último precio disponible en el refresco.
+Las señales automáticas utilizan la última vela cerrada.
 
+## Cartera AUTO multi-activo
 
+Cartera AUTO utiliza las watchlists y el Scanner para trabajar con varios activos simultáneamente.
 
+Controles:
 
-## Watchlist + Scanner
+- Score mínimo;
+- máximo total de posiciones;
+- máximo para Argentina;
+- máximo para Internacional;
+- máximo para Crypto;
+- riesgo global máximo;
+- riesgo por operación;
+- capital máximo por operación;
+- Stop Loss;
+- Take Profit.
 
-IA-TradeX incorpora un **Scanner manual** para analizar varios activos desde una watchlist persistente.
+Antes de abrir una posición exige:
 
-Las listas se separan por:
+1. señal `ENTRADA`;
+2. Score suficiente;
+3. posición no duplicada;
+4. espacio en el límite total;
+5. espacio en el límite del mercado;
+6. efectivo disponible;
+7. margen de riesgo global.
 
-- Argentina;
-- Internacional;
-- Criptomonedas.
+El panel muestra exposición y riesgo separados para ARS y USD.
 
-El Scanner muestra:
+## Performance
 
-- activo;
+El botón **Performance** analiza el historial real de Paper Trading.
+
+Métricas generales por cuenta:
+
+- Equity;
+- retorno desde el capital inicial;
+- P&L realizado;
+- P&L no realizado;
+- Win Rate;
+- Profit Factor;
+- drawdown realizado;
+- operaciones cerradas.
+
+También agrupa resultados por:
+
+- estrategia;
 - mercado;
-- régimen;
-- volatilidad;
-- RSI;
-- estrategia técnica seleccionada;
-- señal;
-- score técnico;
-- explicación del score.
+- régimen.
 
-### Score técnico 0–100
+Cada agrupación muestra operaciones, Win Rate, P&L, P&L medio %, Profit Factor, drawdown realizado, mejor operación y peor operación.
 
-El score **no representa una probabilidad de ganancia**. Es un ranking explicable que suma o resta puntos según:
+Cuando existe un análisis actual en la misma moneda, Performance muestra además la comparación histórica entre la estrategia seleccionada y **Buy & Hold**.
 
-- tendencia;
-- fuerza del régimen;
-- RSI;
-- compatibilidad entre régimen y estrategia;
-- existencia de señal de entrada;
-- retorno histórico de la estrategia en el período analizado;
-- volatilidad.
+## Exportación CSV
 
-Los resultados se ordenan de mayor a menor score.
+Desde Performance se puede exportar:
 
-Desde un resultado se puede:
+- **Operaciones CSV:** historial completo de operaciones cerradas.
+- **Estadísticas CSV:** resumen y agrupaciones por estrategia, mercado y régimen.
 
-- abrir el activo directamente en el dashboard;
-- hacer doble clic para abrirlo;
-- enviarlo a la configuración de **Paper Trading AUTO**.
+## Persistencia y backups
 
-El escaneo se ejecuta en segundo plano para no bloquear la interfaz. Si un activo falla, el resto de la watchlist continúa analizándose.
-
-
-## Paper Trading automático por estrategia
-
-IA-TradeX puede automatizar una estrategia sobre **un activo previamente analizado**.
-
-Configuración disponible:
-
-- activar / pausar modo automático;
-- estrategia: EMA Cross, Momentum, Mean Reversion o Breakout;
-- capital máximo asignado;
-- riesgo porcentual por operación;
-- Stop Loss porcentual;
-- Take Profit porcentual.
-
-El motor:
-
-1. actualiza las posiciones abiertas;
-2. ejecuta Stop Loss / Take Profit simulados;
-3. descarga nuevamente el histórico del activo configurado;
-4. recalcula indicadores;
-5. evalúa la **última vela cerrada**, evitando usar una vela todavía en formación;
-6. abre una posición si existe señal de entrada y no hay otra posición automática equivalente;
-7. calcula la cantidad usando simultáneamente el capital máximo y el riesgo permitido;
-8. cierra por señal de estrategia cuando corresponde;
-9. registra cada evaluación en **Actividad AUTO**.
-
-En instrumentos argentinos la cantidad automática se redondea a unidades enteras. Para crypto e internacional la simulación admite cantidades fraccionarias.
-
-La automatización se evalúa cada **60 segundos mientras la ventana Paper Trading permanece abierta**. La configuración queda persistida localmente.
-
-> Esta funcionalidad es exclusivamente Paper Trading. No se conecta a brokers ni envía órdenes reales.
-
-
-## Arquitectura
+IA-TradeX guarda datos localmente en:
 
 ```text
-┌────────────────────────────────────────┐
-│             JavaFX Desktop             │
-│                                        │
-│ UI · búsqueda · gráficos · portfolio   │
-└────────────────────┬───────────────────┘
-                     │ Java
-                     ▼
-┌────────────────────────────────────────┐
-│           Motor IA-TradeX              │
-│                                        │
-│ MarketService                          │
-│ IndicatorEngine                        │
-│ MarketRegimeEngine                     │
-│ StrategySignalEngine                   │
-│ BacktestEngine                         │
-│ AnalysisService                        │
-└────────────────────┬───────────────────┘
-                     │ HTTP REST
-          ┌──────────┼──────────────┐
-          ▼          ▼              ▼
-      Binance      Kraken      Yahoo / BYMADATA
+~/.ia-tradex/
 ```
+
+Archivos principales:
+
+```text
+paper-trading.json
+paper-trading.json.bak
+watchlists.json
+watchlists.json.bak
+```
+
+Las escrituras utilizan un archivo temporal y reemplazo atómico cuando el sistema operativo lo permite.
+
+## Interfaz macOS
+
+En macOS:
+
+- el icono de la aplicación y del Dock usa solamente el isotipo IX;
+- `Acerca de IA-TradeX` se integra en el menú nativo de la aplicación;
+- la barra interna queda reservada para las funciones de trading/análisis.
 
 ## Requisitos de desarrollo
 
-- Java 21+
-- Maven
+- Java 21;
+- Maven;
+- macOS, Linux o Windows para ejecución JavaFX;
+- `jpackage` para packaging macOS.
 
-## Ejecutar durante el desarrollo
+## Ejecutar en desarrollo
 
 ```bash
 mvn clean javafx:run
 ```
 
-## Crear la aplicación macOS
+Validación rápida:
+
+```bash
+./verify-project.sh
+```
+
+## Empaquetar para macOS
+
+Aplicación `.app`:
 
 ```bash
 ./package-macos.sh
@@ -312,31 +309,46 @@ Resultado:
 dist/IA-TradeX.app
 ```
 
-Para generar un instalador DMG:
+DMG:
 
 ```bash
 ./package-macos-dmg.sh
 ```
 
-La aplicación empaquetada incluye su runtime Java, por lo que el usuario final no necesita Maven ni Python.
+## Arquitectura
+
+Paquetes principales:
+
+```text
+com.iatradex.market
+com.iatradex.analysis
+com.iatradex.scanner
+com.iatradex.paper
+com.iatradex.ui
+```
+
+Más detalle en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Documentación
 
 - [Manual de usuario](docs/MANUAL.md)
+- [Arquitectura](docs/ARCHITECTURE.md)
+- [QA v1.0.0](docs/QA.md)
+- [Notas de release 1.0.0](docs/RELEASE_1.0.0.md)
 - [Changelog](docs/CHANGELOG.md)
-
-El manual se mantiene durante el desarrollo para que la documentación final no tenga que reconstruirse desde cero.
 
 ## Próximas etapas
 
-- ejecución automática de Paper Trading por estrategia
-- actualización más frecuente mediante streaming/WebSocket
-- WebSockets / datos en vivo
-- validación walk-forward
-- validación fuera de muestra
-- Machine Learning
-- noticias y sentimiento
-- explicabilidad de modelos
+La v1.0.0 cierra la base funcional. Las siguientes etapas deberían concentrarse en validación antes de agregar ML:
+
+- walk-forward;
+- validación fuera de muestra;
+- análisis de robustez por períodos;
+- datos por WebSocket/streaming donde sea posible;
+- Machine Learning sobre datos y estrategias ya auditables;
+- sentimiento/noticias;
+- explicabilidad de modelos;
+- integración opcional con brokers en una etapa posterior y con controles específicos.
 
 ## Acerca de
 
@@ -346,8 +358,6 @@ El manual se mantiene durante el desarrollo para que la documentación final no 
 
 ## Licencia
 
-IA-TradeX se distribuye bajo la **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+IA-TradeX se distribuye bajo **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 
-La AGPLv3 exige que las modificaciones de la aplicación también permanezcan disponibles bajo los términos de la licencia cuando el software se distribuye o se ofrece a usuarios a través de una red.
-
-Consulta el archivo [LICENSE](LICENSE) para el texto completo.
+Consulta [LICENSE](LICENSE) para el texto completo.

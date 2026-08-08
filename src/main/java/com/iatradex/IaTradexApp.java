@@ -17,9 +17,15 @@ import com.iatradex.paper.PaperAccount;
 import com.iatradex.paper.PaperAutoConfig;
 import com.iatradex.paper.PaperAutoResult;
 import com.iatradex.paper.PaperAutoTradingEngine;
+import com.iatradex.paper.PaperPortfolioAutoConfig;
+import com.iatradex.paper.PaperPortfolioAutoResult;
+import com.iatradex.paper.PaperPortfolioAutoEngine;
 import com.iatradex.paper.PaperPosition;
 import com.iatradex.paper.PaperRefreshResult;
 import com.iatradex.paper.PaperTradingService;
+import com.iatradex.paper.PaperPerformanceAnalyzer;
+import com.iatradex.paper.PaperPerformanceStat;
+import com.iatradex.paper.PaperPerformanceSummary;
 import com.iatradex.scanner.ScannerEngine;
 import com.iatradex.scanner.ScannerResult;
 import com.iatradex.scanner.WatchlistItem;
@@ -30,6 +36,7 @@ import com.iatradex.ui.StrategyRow;
 import com.iatradex.ui.PaperHistoryRow;
 import com.iatradex.ui.PaperAutoLogRow;
 import com.iatradex.ui.PaperPositionRow;
+import com.iatradex.ui.PaperPerformanceRow;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.animation.KeyFrame;
@@ -50,9 +57,11 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.Modality;
 import javafx.stage.StageStyle;
+import javafx.stage.FileChooser;
 import javafx.util.Duration;
 
 import java.time.Instant;
@@ -72,6 +81,8 @@ public final class IaTradexApp extends Application {
     private final WatchlistService watchlistService = new WatchlistService();
     private final ScannerEngine scannerEngine = new ScannerEngine(analysisService);
     private final PaperAutoTradingEngine paperAutoTradingEngine = new PaperAutoTradingEngine(analysisService, marketService, paperTradingService);
+    private final PaperPortfolioAutoEngine paperPortfolioAutoEngine = new PaperPortfolioAutoEngine(scannerEngine, watchlistService, marketService, paperTradingService);
+    private final PaperPerformanceAnalyzer paperPerformanceAnalyzer = new PaperPerformanceAnalyzer();
 
     private final ComboBox<String> marketBox = new ComboBox<>();
     private final ComboBox<String> sourceBox = new ComboBox<>();
@@ -129,6 +140,7 @@ public final class IaTradexApp extends Application {
     private final Button analyzeButton = new Button("Analizar mercado");
     private final Button paperTradingButton = new Button("Paper Trading");
     private final Button scannerButton = new Button("Scanner");
+    private final Button performanceButton = new Button("Performance");
 
     private final DateTimeFormatter chartDate =
             DateTimeFormatter.ofPattern("dd/MM")
@@ -144,7 +156,9 @@ public final class IaTradexApp extends Application {
         root.getStyleClass().add("app-root");
 
         configureSelectors();
-        root.setTop(createTopBar());
+        MenuBar appMenuBar = createSystemMenuBar();
+        VBox topArea = new VBox(appMenuBar, createTopBar());
+        root.setTop(topArea);
 
         VBox page = new VBox(12);
         page.setPadding(new Insets(16));
@@ -204,7 +218,7 @@ public final class IaTradexApp extends Application {
                         .toExternalForm()
         );
 
-        stage.setTitle("IA-TradeX");
+        stage.setTitle("IA-TradeX v1.0.0");
 
         try {
             stage.getIcons().add(
@@ -238,14 +252,53 @@ public final class IaTradexApp extends Application {
         timeframeBox.getItems().addAll("1h", "4h", "1d");
         timeframeBox.setValue("1h");
 
+        timeframeBox.getStyleClass().add("timeframe-compact");
+
+        timeframeBox.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : item);
+                setTextOverrun(OverrunStyle.CLIP);
+                setPadding(new Insets(0, 2, 0, 4));
+            }
+        });
+
+        timeframeBox.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : item);
+            }
+        });
+
         periodBox.getItems().addAll("1m", "3m", "6m", "1y");
         periodBox.setValue("3m");
+        periodBox.getStyleClass().add("period-compact");
 
-        fixedWidth(marketBox, 132);
-        fixedWidth(sourceBox, 104);
+        periodBox.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : item);
+                setTextOverrun(OverrunStyle.CLIP);
+                setPadding(new Insets(0, 2, 0, 4));
+            }
+        });
+
+        periodBox.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : item);
+            }
+        });
+
+        fixedWidth(marketBox, 125);
+        fixedWidth(sourceBox, 98);
         fixedWidth(cryptoSymbolBox, 245);
-        fixedWidth(timeframeBox, 76);
-        fixedWidth(periodBox, 82);
+        fixedWidth(timeframeBox, 78);
+        fixedWidth(periodBox, 78);
 
         stockSearchField.setPromptText("Buscar acción o ticker...");
         stockSearchField.setText("AAPL — Apple Inc.");
@@ -402,33 +455,72 @@ public final class IaTradexApp extends Application {
         );
     }
 
+    private MenuBar createSystemMenuBar() {
+        Menu appMenu = new Menu("IA-TradeX");
+
+        MenuItem aboutItem = new MenuItem(
+                "Acerca de IA-TradeX"
+        );
+        aboutItem.setOnAction(e -> showAbout());
+
+        SeparatorMenuItem separator =
+                new SeparatorMenuItem();
+
+        MenuItem quitItem = new MenuItem(
+                "Salir de IA-TradeX"
+        );
+        quitItem.setOnAction(e -> Platform.exit());
+
+        appMenu.getItems().addAll(
+                aboutItem,
+                separator,
+                quitItem
+        );
+
+        MenuBar menuBar = new MenuBar(appMenu);
+
+        // En macOS JavaFX integra este MenuBar en la barra superior
+        // del sistema, junto al menú de la aplicación.
+        menuBar.setUseSystemMenuBar(true);
+        menuBar.getStyleClass().add("system-menu-bar");
+
+        return menuBar;
+    }
+
     private Node createTopBar() {
         ImageView brandIcon = new ImageView();
 
         try {
-            brandIcon.setImage(
-                    new Image(
-                            IaTradexApp.class.getResourceAsStream(
-                                    "/com/iatradex/icon.png"
-                            )
+            Image sourceIcon = new Image(
+                    IaTradexApp.class.getResourceAsStream(
+                            "/com/iatradex/icon.png"
                     )
             );
+
+            brandIcon.setImage(sourceIcon);
         } catch (Exception ignored) {
         }
 
-        brandIcon.setFitWidth(44);
-        brandIcon.setFitHeight(44);
+        brandIcon.setFitWidth(40);
+        brandIcon.setFitHeight(40);
         brandIcon.setPreserveRatio(true);
         brandIcon.setSmooth(true);
 
         StackPane brandHolder = new StackPane(brandIcon);
         brandHolder.getStyleClass().add("brand-icon-holder");
-        brandHolder.setMinSize(54, 54);
-        brandHolder.setPrefSize(54, 54);
-        brandHolder.setMaxSize(54, 54);
+        brandHolder.setMinSize(46, 46);
+        brandHolder.setPrefSize(46, 46);
+        brandHolder.setMaxSize(46, 46);
 
-        Label mode = new Label("100% JAVA · ANÁLISIS / BACKTEST");
-        mode.getStyleClass().add("paper-badge");
+        Label mode = new Label(
+                "100% JAVA · ANÁLISIS / BACKTEST"
+        );
+        mode.getStyleClass().add("top-mode-label");
+
+        HBox modeStrip = new HBox(mode);
+        modeStrip.setAlignment(Pos.CENTER_RIGHT);
+        modeStrip.setPadding(new Insets(3, 14, 3, 14));
+        modeStrip.getStyleClass().add("top-mode-strip");
 
         analyzeButton.getStyleClass().add("primary-button");
         analyzeButton.setOnAction(e -> analyze());
@@ -439,49 +531,80 @@ public final class IaTradexApp extends Application {
         scannerButton.getStyleClass().add("secondary-button");
         scannerButton.setOnAction(e -> showScanner());
 
-        MenuItem aboutItem = new MenuItem("Acerca de IA-TradeX");
-        aboutItem.setOnAction(e -> showAbout());
+        performanceButton.getStyleClass().add("secondary-button");
+        performanceButton.setOnAction(e -> showPerformance());
 
-        MenuButton menuButton = new MenuButton("Menú");
-        menuButton.getItems().add(aboutItem);
-        menuButton.getStyleClass().add("top-menu-button");
+        matchTopControlHeight(
+                analyzeButton,
+                scannerButton,
+                performanceButton,
+                paperTradingButton
+        );
 
-        VBox marketSelector = labeledSelector("Mercado", marketBox);
-        VBox sourceSelector = labeledSelector("Fuente", sourceBox);
-        VBox assetSelector = labeledSelector("Activo", assetSelectorPane);
-        VBox timeframeSelector = labeledSelector("Vela", timeframeBox);
-        VBox periodSelector = labeledSelector("Período", periodBox);
+        VBox marketSelector = labeledSelector(
+                "Mercado",
+                marketBox
+        );
+        VBox sourceSelector = labeledSelector(
+                "Fuente",
+                sourceBox
+        );
+        VBox assetSelector = labeledSelector(
+                "Activo",
+                assetSelectorPane
+        );
+        VBox timeframeSelector = labeledSelector(
+                "Vela",
+                timeframeBox
+        );
+        VBox periodSelector = labeledSelector(
+                "Período",
+                periodBox
+        );
 
-        HBox top = new HBox(
-                10,
+        HBox controls = new HBox(
+                9,
                 brandHolder,
                 marketSelector,
                 sourceSelector,
                 assetSelector,
                 timeframeSelector,
                 periodSelector,
-                mode,
                 analyzeButton,
                 scannerButton,
-                paperTradingButton,
-                menuButton
+                performanceButton,
+                paperTradingButton
         );
 
-        top.setPadding(new Insets(8, 14, 8, 14));
-        top.setAlignment(Pos.CENTER_LEFT);
-        top.getStyleClass().addAll(
+        controls.setPadding(new Insets(6, 14, 7, 14));
+        controls.setAlignment(Pos.BOTTOM_LEFT);
+        controls.getStyleClass().addAll(
                 "top-bar",
                 "single-row-top-bar"
         );
 
-        ScrollPane topScroll = new ScrollPane(top);
-        topScroll.setFitToHeight(true);
-        topScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        topScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        topScroll.setPannable(true);
-        topScroll.getStyleClass().add("top-bar-scroll");
+        // Los selectores y acciones permanecen SIEMPRE en una fila.
+        // Si una ventana excepcionalmente angosta no alcanza, se permite
+        // desplazamiento horizontal en lugar de recortar controles.
+        ScrollPane controlsScroll = new ScrollPane(controls);
+        controlsScroll.setFitToHeight(true);
+        controlsScroll.setHbarPolicy(
+                ScrollPane.ScrollBarPolicy.AS_NEEDED
+        );
+        controlsScroll.setVbarPolicy(
+                ScrollPane.ScrollBarPolicy.NEVER
+        );
+        controlsScroll.setPannable(true);
+        controlsScroll.getStyleClass().add("top-bar-scroll");
 
-        return topScroll;
+        VBox top = new VBox(
+                0,
+                modeStrip,
+                controlsScroll
+        );
+        top.getStyleClass().add("top-header");
+
+        return top;
     }
 
 
@@ -841,6 +964,9 @@ public final class IaTradexApp extends Application {
 
         Button scanButton = new Button("Escanear");
         scanButton.getStyleClass().add("primary-button");
+
+        CheckBox autoScan = new CheckBox("Auto 60 s");
+        autoScan.getStyleClass().add("scanner-auto-check");
 
         Button analyzeSelected = new Button("Abrir en análisis");
         analyzeSelected.getStyleClass().add("secondary-button");
@@ -1231,7 +1357,8 @@ public final class IaTradexApp extends Application {
                 labeledSelector("Nuevo activo", symbolField),
                 addButton,
                 removeButton,
-                scanButton
+                scanButton,
+                autoScan
         );
         controls.setAlignment(Pos.CENTER_LEFT);
         controls.getStyleClass().add("scanner-controls");
@@ -1299,6 +1426,37 @@ public final class IaTradexApp extends Application {
             );
         } catch (Exception ignored) {
         }
+
+        Timeline scannerAutoRefresh = new Timeline(
+                new KeyFrame(
+                        Duration.seconds(60),
+                        e -> {
+                            if (autoScan.isSelected()) {
+                                scan.run();
+                            }
+                        }
+                )
+        );
+        scannerAutoRefresh.setCycleCount(Timeline.INDEFINITE);
+
+        autoScan.selectedProperty().addListener(
+                (obs, oldValue, enabled) -> {
+                    if (enabled) {
+                        scan.run();
+                        scannerAutoRefresh.play();
+                        scanStatus.setText(
+                                "Scanner automático activo · cada 60 s"
+                        );
+                    } else {
+                        scannerAutoRefresh.stop();
+                        scanStatus.setText(
+                                "Scanner automático pausado."
+                        );
+                    }
+                }
+        );
+
+        window.setOnHidden(e -> scannerAutoRefresh.stop());
 
         window.show();
     }
@@ -1470,7 +1628,7 @@ public final class IaTradexApp extends Application {
         title.getStyleClass().add("about-title");
 
         Label subtitle = new Label(
-                "Análisis de mercados y backtesting · 100% Java"
+                "Análisis de mercados y backtesting · 100% Java · v1.0.0"
         );
         subtitle.getStyleClass().add("about-subtitle");
 
@@ -1587,6 +1745,550 @@ public final class IaTradexApp extends Application {
         dialog.showAndWait();
     }
 
+    private void showPerformance() {
+        Stage window = new Stage();
+        window.initModality(Modality.NONE);
+        window.setTitle("IA-TradeX · Performance");
+
+        Label title = new Label("Performance de Paper Trading");
+        title.getStyleClass().add("paper-title");
+
+        Label subtitle = new Label(
+                "Resultados realizados y no realizados · separado por moneda"
+        );
+        subtitle.getStyleClass().add("paper-subtitle");
+
+        ToggleGroup currencyGroup = new ToggleGroup();
+        ToggleButton ars = new ToggleButton("ARS");
+        ToggleButton usd = new ToggleButton("USD");
+        ars.setToggleGroup(currencyGroup);
+        usd.setToggleGroup(currencyGroup);
+        ars.getStyleClass().add("paper-currency-toggle");
+        usd.getStyleClass().add("paper-currency-toggle");
+
+        if (currentAnalysis != null
+                && "USD".equalsIgnoreCase(currentAnalysis.currency())) {
+            usd.setSelected(true);
+        } else {
+            ars.setSelected(true);
+        }
+
+        HBox currencySelector = new HBox(4, ars, usd);
+        currencySelector.getStyleClass().add("paper-currency-selector");
+
+        Label equityValue = new Label();
+        Label returnValue = new Label();
+        Label realizedValue = new Label();
+        Label unrealizedValue = new Label();
+        Label winRateValue = new Label();
+        Label pfValue = new Label();
+        Label ddValue = new Label();
+        Label tradesValue = new Label();
+
+        FlowPane cards = new FlowPane(8, 8);
+        cards.setAlignment(Pos.CENTER_LEFT);
+
+        TableView<PaperPerformanceRow> strategyTable =
+                createPerformanceTable("Estrategia");
+        TableView<PaperPerformanceRow> marketTable =
+                createPerformanceTable("Mercado");
+        TableView<PaperPerformanceRow> regimeTable =
+                createPerformanceTable("Régimen");
+
+        Tab strategyTab = new Tab(
+                "Por estrategia",
+                strategyTable
+        );
+        Tab marketTab = new Tab(
+                "Por mercado",
+                marketTable
+        );
+        Tab regimeTab = new Tab(
+                "Por régimen",
+                regimeTable
+        );
+
+        strategyTab.setClosable(false);
+        marketTab.setClosable(false);
+        regimeTab.setClosable(false);
+
+        TabPane tabs = new TabPane(
+                strategyTab,
+                marketTab,
+                regimeTab
+        );
+        tabs.setTabClosingPolicy(
+                TabPane.TabClosingPolicy.UNAVAILABLE
+        );
+        VBox.setVgrow(tabs, Priority.ALWAYS);
+
+        Label comparisonTitle = new Label(
+                "Comparación del análisis actual"
+        );
+        comparisonTitle.getStyleClass().add("paper-active-account");
+
+        Label comparison = new Label(
+                "Analizá un activo para comparar estrategia vs Buy & Hold."
+        );
+        comparison.setWrapText(true);
+        comparison.getStyleClass().add("performance-comparison");
+
+        Label note = new Label(
+                "Las estadísticas se calculan sobre operaciones cerradas de Paper Trading. "
+                        + "El drawdown mostrado aquí utiliza el P&L realizado acumulado. "
+                        + "No es una predicción futura."
+        );
+        note.setWrapText(true);
+        note.getStyleClass().add("paper-note");
+
+        Button exportCsv = new Button("Exportar operaciones CSV");
+        exportCsv.getStyleClass().add("secondary-button");
+
+        Button exportStatsCsv =
+                new Button("Exportar estadísticas CSV");
+        exportStatsCsv.getStyleClass().add("secondary-button");
+
+        Button refresh = new Button("Actualizar");
+        refresh.getStyleClass().add("primary-button");
+
+        Runnable refreshUi = () -> {
+            String currency = usd.isSelected()
+                    ? "USD"
+                    : "ARS";
+
+            PaperPerformanceSummary summary =
+                    paperPerformanceAnalyzer.summary(
+                            paperTradingService,
+                            currency
+                    );
+
+            equityValue.setText(
+                    paperMoney(summary.equity(), currency)
+            );
+            returnValue.setText(
+                    String.format("%+.2f%%", summary.returnPct())
+            );
+            realizedValue.setText(
+                    paperMoney(summary.realizedPnl(), currency)
+            );
+            unrealizedValue.setText(
+                    paperMoney(summary.unrealizedPnl(), currency)
+            );
+            winRateValue.setText(
+                    String.format("%.2f%%", summary.winRatePct())
+            );
+            pfValue.setText(
+                    summary.profitFactor() == null
+                            ? "∞"
+                            : String.format(
+                                    "%.2f",
+                                    summary.profitFactor()
+                            )
+            );
+            ddValue.setText(
+                    paperMoney(
+                            summary.maxRealizedDrawdown(),
+                            currency
+                    )
+            );
+            tradesValue.setText(
+                    String.valueOf(summary.closedTrades())
+            );
+
+            cards.getChildren().setAll(
+                    performanceMetric("EQUITY", equityValue),
+                    performanceMetric("RETORNO", returnValue),
+                    performanceMetric("P&L REALIZADO", realizedValue),
+                    performanceMetric("P&L NO REALIZADO", unrealizedValue),
+                    performanceMetric("WIN RATE", winRateValue),
+                    performanceMetric("PROFIT FACTOR", pfValue),
+                    performanceMetric("DRAWDOWN REAL.", ddValue),
+                    performanceMetric("OPERACIONES", tradesValue)
+            );
+
+            strategyTable.setItems(
+                    FXCollections.observableArrayList(
+                            paperPerformanceAnalyzer
+                                    .byStrategy(
+                                            paperTradingService,
+                                            currency
+                                    )
+                                    .stream()
+                                    .map(stat ->
+                                            new PaperPerformanceRow(
+                                                    stat,
+                                                    currency
+                                            )
+                                    )
+                                    .toList()
+                    )
+            );
+
+            marketTable.setItems(
+                    FXCollections.observableArrayList(
+                            paperPerformanceAnalyzer
+                                    .byMarket(
+                                            paperTradingService,
+                                            currency
+                                    )
+                                    .stream()
+                                    .map(stat ->
+                                            new PaperPerformanceRow(
+                                                    stat,
+                                                    currency
+                                            )
+                                    )
+                                    .toList()
+                    )
+            );
+
+            regimeTable.setItems(
+                    FXCollections.observableArrayList(
+                            paperPerformanceAnalyzer
+                                    .byRegime(
+                                            paperTradingService,
+                                            currency
+                                    )
+                                    .stream()
+                                    .map(stat ->
+                                            new PaperPerformanceRow(
+                                                    stat,
+                                                    currency
+                                            )
+                                    )
+                                    .toList()
+                    )
+            );
+
+            if (currentAnalysis != null
+                    && currency.equalsIgnoreCase(
+                            currentAnalysis.currency()
+                    )) {
+                Metrics currentMetrics =
+                        currentAnalysis
+                                .primaryStrategy()
+                                .metrics();
+
+                comparison.setText(
+                        currentAnalysis.symbol()
+                                + " · "
+                                + currentAnalysis
+                                .primaryStrategy()
+                                .strategy()
+                                .displayName()
+                                + ": "
+                                + String.format(
+                                        "%+.2f%%",
+                                        currentMetrics.returnPct()
+                                )
+                                + " · Buy & Hold: "
+                                + String.format(
+                                        "%+.2f%%",
+                                        currentMetrics.buyHoldReturnPct()
+                                )
+                                + " · Diferencia: "
+                                + String.format(
+                                        "%+.2f pp",
+                                        currentMetrics.returnPct()
+                                                - currentMetrics
+                                                .buyHoldReturnPct()
+                                )
+                );
+            } else {
+                comparison.setText(
+                        "No hay un análisis actual compatible con la cuenta "
+                                + currency
+                                + "."
+                );
+            }
+        };
+
+        currencyGroup.selectedToggleProperty().addListener(
+                (obs, oldToggle, newToggle) -> {
+                    if (newToggle == null) {
+                        ars.setSelected(true);
+                    }
+                    refreshUi.run();
+                }
+        );
+
+        refresh.setOnAction(e -> refreshUi.run());
+
+        exportCsv.setOnAction(e -> {
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle(
+                    "Exportar operaciones de Paper Trading"
+            );
+            chooser.setInitialFileName(
+                    "ia-tradex-paper-trading.csv"
+            );
+            chooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter(
+                            "CSV",
+                            "*.csv"
+                    )
+            );
+
+            java.io.File file =
+                    chooser.showSaveDialog(window);
+
+            if (file == null) {
+                return;
+            }
+
+            try {
+                paperTradingService.exportHistoryCsv(
+                        file.toPath()
+                );
+
+                Alert ok = new Alert(
+                        Alert.AlertType.INFORMATION,
+                        "CSV exportado correctamente.",
+                        ButtonType.OK
+                );
+                ok.setTitle("IA-TradeX");
+                ok.setHeaderText(
+                        "Exportación completada"
+                );
+                ok.showAndWait();
+            } catch (Exception ex) {
+                showPaperError(ex.getMessage());
+            }
+        });
+
+        exportStatsCsv.setOnAction(e -> {
+            String currency = usd.isSelected()
+                    ? "USD"
+                    : "ARS";
+
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle(
+                    "Exportar estadísticas de Performance"
+            );
+            chooser.setInitialFileName(
+                    "ia-tradex-performance-"
+                            + currency.toLowerCase()
+                            + ".csv"
+            );
+            chooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter(
+                            "CSV",
+                            "*.csv"
+                    )
+            );
+
+            java.io.File file =
+                    chooser.showSaveDialog(window);
+
+            if (file == null) {
+                return;
+            }
+
+            try {
+                paperPerformanceAnalyzer.exportStatsCsv(
+                        paperTradingService,
+                        currency,
+                        file.toPath()
+                );
+
+                Alert ok = new Alert(
+                        Alert.AlertType.INFORMATION,
+                        "Estadísticas exportadas correctamente.",
+                        ButtonType.OK
+                );
+                ok.setTitle("IA-TradeX");
+                ok.setHeaderText(
+                        "Exportación completada"
+                );
+                ok.showAndWait();
+            } catch (Exception ex) {
+                showPaperError(ex.getMessage());
+            }
+        });
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox header = new HBox(
+                12,
+                new VBox(2, title, subtitle),
+                spacer,
+                currencySelector
+        );
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        HBox actions = new HBox(
+                10,
+                refresh,
+                exportCsv,
+                exportStatsCsv
+        );
+        actions.setAlignment(Pos.CENTER_RIGHT);
+
+        VBox comparisonBox = new VBox(
+                6,
+                comparisonTitle,
+                comparison
+        );
+        comparisonBox.setPadding(new Insets(12));
+        comparisonBox.getStyleClass().add(
+                "performance-comparison-box"
+        );
+
+        VBox root = new VBox(
+                12,
+                header,
+                cards,
+                comparisonBox,
+                tabs,
+                note,
+                actions
+        );
+        root.setPadding(new Insets(18));
+        root.getStyleClass().addAll(
+                "paper-root",
+                "performance-root"
+        );
+
+        Scene scene = new Scene(root, 1320, 780);
+        scene.getStylesheets().add(
+                IaTradexApp.class
+                        .getResource("/com/iatradex/theme.css")
+                        .toExternalForm()
+        );
+
+        window.setScene(scene);
+        window.setMinWidth(900);
+        window.setMinHeight(620);
+
+        try {
+            window.getIcons().add(
+                    new Image(
+                            IaTradexApp.class.getResourceAsStream(
+                                    "/com/iatradex/icon.png"
+                            )
+                    )
+            );
+        } catch (Exception ignored) {
+        }
+
+        refreshUi.run();
+        window.show();
+    }
+
+    private TableView<PaperPerformanceRow> createPerformanceTable(
+            String firstColumnTitle
+    ) {
+        TableView<PaperPerformanceRow> table =
+                new TableView<>();
+
+        table.setColumnResizePolicy(
+                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
+        );
+        table.getStyleClass().add("performance-table");
+
+        TableColumn<PaperPerformanceRow, String> group =
+                new TableColumn<>(firstColumnTitle);
+        group.setCellValueFactory(v ->
+                v.getValue().groupProperty()
+        );
+
+        TableColumn<PaperPerformanceRow, String> trades =
+                new TableColumn<>("Ops");
+        trades.setCellValueFactory(v ->
+                v.getValue().tradesProperty()
+        );
+
+        TableColumn<PaperPerformanceRow, String> winRate =
+                new TableColumn<>("Win Rate");
+        winRate.setCellValueFactory(v ->
+                v.getValue().winRateProperty()
+        );
+
+        TableColumn<PaperPerformanceRow, String> pnl =
+                new TableColumn<>("P&L");
+        pnl.setCellValueFactory(v ->
+                v.getValue().pnlProperty()
+        );
+
+        TableColumn<PaperPerformanceRow, String> avg =
+                new TableColumn<>("P&L medio %");
+        avg.setCellValueFactory(v ->
+                v.getValue().avgPnlPctProperty()
+        );
+
+        TableColumn<PaperPerformanceRow, String> pf =
+                new TableColumn<>("Profit Factor");
+        pf.setCellValueFactory(v ->
+                v.getValue().profitFactorProperty()
+        );
+
+        TableColumn<PaperPerformanceRow, String> dd =
+                new TableColumn<>("DD realizado");
+        dd.setCellValueFactory(v ->
+                v.getValue().drawdownProperty()
+        );
+
+        TableColumn<PaperPerformanceRow, String> best =
+                new TableColumn<>("Mejor");
+        best.setCellValueFactory(v ->
+                v.getValue().bestProperty()
+        );
+
+        TableColumn<PaperPerformanceRow, String> worst =
+                new TableColumn<>("Peor");
+        worst.setCellValueFactory(v ->
+                v.getValue().worstProperty()
+        );
+
+        group.setPrefWidth(220);
+        trades.setPrefWidth(70);
+        winRate.setPrefWidth(90);
+        pnl.setPrefWidth(120);
+        avg.setPrefWidth(100);
+        pf.setPrefWidth(100);
+        dd.setPrefWidth(120);
+        best.setPrefWidth(110);
+        worst.setPrefWidth(110);
+
+        table.getColumns().addAll(
+                group,
+                trades,
+                winRate,
+                pnl,
+                avg,
+                pf,
+                dd,
+                best,
+                worst
+        );
+
+        return table;
+    }
+
+    private VBox performanceMetric(
+            String title,
+            Label value
+    ) {
+        Label caption = new Label(title);
+        caption.getStyleClass().add("paper-account-caption");
+
+        value.getStyleClass().add("performance-metric-value");
+
+        VBox box = new VBox(
+                3,
+                caption,
+                value
+        );
+        box.setPadding(new Insets(10, 12, 10, 12));
+        box.getStyleClass().add(
+                "performance-metric-card"
+        );
+        box.setMinWidth(125);
+
+        return box;
+    }
+
     private void showPaperTrading() {
         Stage window = new Stage();
         window.initModality(Modality.NONE);
@@ -1663,6 +2365,12 @@ public final class IaTradexApp extends Application {
 
         Button refreshNow = new Button("Actualizar ahora");
         refreshNow.getStyleClass().add("secondary-button");
+
+        Button portfolioAutoButton = new Button("Cartera AUTO");
+        portfolioAutoButton.getStyleClass().add("secondary-button");
+        portfolioAutoButton.setOnAction(
+                e -> showPortfolioAutoDialog()
+        );
 
         Label activeAccount = new Label();
         activeAccount.getStyleClass().add("paper-active-account");
@@ -1861,6 +2569,76 @@ public final class IaTradexApp extends Application {
 
         AtomicBoolean refreshing = new AtomicBoolean(false);
         AtomicBoolean autoRunning = new AtomicBoolean(false);
+        AtomicBoolean portfolioRunning = new AtomicBoolean(false);
+
+        Runnable runPortfolioAuto = () -> {
+            PaperPortfolioAutoConfig config =
+                    paperTradingService.portfolioAutoConfig();
+
+            if (config == null || !config.enabled()) {
+                return;
+            }
+
+            if (!portfolioRunning.compareAndSet(false, true)) {
+                return;
+            }
+
+            autoRunStatus.setText(
+                    "Cartera AUTO: escaneando watchlists..."
+            );
+
+            Task<PaperPortfolioAutoResult> task = new Task<>() {
+                @Override
+                protected PaperPortfolioAutoResult call()
+                        throws Exception {
+                    return paperPortfolioAutoEngine.runOnce(config);
+                }
+            };
+
+            task.setOnSucceeded(e -> {
+                PaperPortfolioAutoResult result = task.getValue();
+
+                autoRunStatus.setText(
+                        "Cartera AUTO: "
+                                + result.scanned()
+                                + " escaneados · "
+                                + result.entries()
+                                + " entradas · "
+                                + result.exits()
+                                + " salidas"
+                );
+
+                lastUpdate.setText(
+                        "Última cartera AUTO: "
+                                + paperUpdateTime(result.timestamp())
+                );
+
+                refreshUi.run();
+                portfolioRunning.set(false);
+            });
+
+            task.setOnFailed(e -> {
+                Throwable error = task.getException();
+
+                autoRunStatus.setText(
+                        "Cartera AUTO: ERROR · "
+                                + (
+                                error == null
+                                        ? "desconocido"
+                                        : error.getMessage()
+                        )
+                );
+
+                portfolioRunning.set(false);
+            });
+
+            Thread thread = new Thread(
+                    task,
+                    "paper-portfolio-auto"
+            );
+            thread.setDaemon(true);
+            thread.start();
+        };
 
         Runnable refreshMarket = () -> {
             if (!refreshing.compareAndSet(false, true)) {
@@ -2287,7 +3065,17 @@ public final class IaTradexApp extends Application {
         });
 
         refreshNow.setOnAction(e -> {
-            PaperAutoConfig config = paperTradingService.autoConfig();
+            PaperPortfolioAutoConfig portfolioConfig =
+                    paperTradingService.portfolioAutoConfig();
+
+            if (portfolioConfig != null
+                    && portfolioConfig.enabled()) {
+                runPortfolioAuto.run();
+                return;
+            }
+
+            PaperAutoConfig config =
+                    paperTradingService.autoConfig();
 
             if (config != null && config.enabled()) {
                 runAutoStrategy.run();
@@ -2316,6 +3104,7 @@ public final class IaTradexApp extends Application {
                 autoStatus,
                 actionSpacer,
                 refreshNow,
+                portfolioAutoButton,
                 configureCapital,
                 buyCurrent,
                 closeSelected
@@ -2430,6 +3219,15 @@ public final class IaTradexApp extends Application {
                 new KeyFrame(
                         Duration.seconds(60),
                         e -> {
+                            PaperPortfolioAutoConfig portfolioConfig =
+                                    paperTradingService.portfolioAutoConfig();
+
+                            if (portfolioConfig != null
+                                    && portfolioConfig.enabled()) {
+                                runPortfolioAuto.run();
+                                return;
+                            }
+
                             PaperAutoConfig config =
                                     paperTradingService.autoConfig();
 
@@ -2446,12 +3244,21 @@ public final class IaTradexApp extends Application {
         window.setOnShown(e -> {
             refreshUi.run();
 
-            PaperAutoConfig config = paperTradingService.autoConfig();
+            PaperPortfolioAutoConfig portfolioConfig =
+                    paperTradingService.portfolioAutoConfig();
 
-            if (config != null && config.enabled()) {
-                runAutoStrategy.run();
+            if (portfolioConfig != null
+                    && portfolioConfig.enabled()) {
+                runPortfolioAuto.run();
             } else {
-                refreshMarket.run();
+                PaperAutoConfig config =
+                        paperTradingService.autoConfig();
+
+                if (config != null && config.enabled()) {
+                    runAutoStrategy.run();
+                } else {
+                    refreshMarket.run();
+                }
             }
 
             autoRefresh.play();
@@ -2460,6 +3267,592 @@ public final class IaTradexApp extends Application {
         window.setOnHidden(e -> autoRefresh.stop());
 
         window.show();
+    }
+
+    private void showPortfolioAutoDialog() {
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.setTitle("IA-TradeX · Cartera AUTO");
+
+        PaperPortfolioAutoConfig current =
+                paperTradingService.portfolioAutoConfig();
+
+        CheckBox enabled = new CheckBox(
+                "Activar Scanner + Paper Trading multi-activo"
+        );
+        enabled.setSelected(current.enabled());
+
+        TextField minScore = new TextField(
+                String.valueOf(current.minScore())
+        );
+        TextField maxPositions = new TextField(
+                String.valueOf(current.maxPositions())
+        );
+        TextField maxArgentina = new TextField(
+                String.valueOf(current.maxArgentinaPositions())
+        );
+        TextField maxInternational = new TextField(
+                String.valueOf(current.maxInternationalPositions())
+        );
+        TextField maxCrypto = new TextField(
+                String.valueOf(current.maxCryptoPositions())
+        );
+        TextField globalRisk = new TextField(
+                String.format("%.2f", current.maxGlobalRiskPct())
+        );
+        TextField tradeRisk = new TextField(
+                String.format("%.2f", current.riskPerTradePct())
+        );
+        TextField capitalPerTrade = new TextField(
+                String.format("%.2f", current.maxCapitalPerTradePct())
+        );
+        TextField stop = new TextField(
+                String.format("%.2f", current.stopLossPct())
+        );
+        TextField take = new TextField(
+                String.format("%.2f", current.takeProfitPct())
+        );
+
+        for (TextField field : List.of(
+                minScore,
+                maxPositions,
+                maxArgentina,
+                maxInternational,
+                maxCrypto,
+                globalRisk,
+                tradeRisk,
+                capitalPerTrade,
+                stop,
+                take
+        )) {
+            fixedWidth(field, 96);
+        }
+
+        Label positions = new Label();
+        Label argentinaCount = new Label();
+        Label internationalCount = new Label();
+        Label cryptoCount = new Label();
+
+        Label arsExposure = new Label();
+        Label usdExposure = new Label();
+        Label arsRisk = new Label();
+        Label usdRisk = new Label();
+
+        for (Label label : List.of(
+                positions,
+                argentinaCount,
+                internationalCount,
+                cryptoCount,
+                arsExposure,
+                usdExposure,
+                arsRisk,
+                usdRisk
+        )) {
+            label.getStyleClass().add("portfolio-metric-value");
+        }
+
+        GridPane configGrid = new GridPane();
+        configGrid.setHgap(12);
+        configGrid.setVgap(8);
+
+        configGrid.addRow(
+                0,
+                new Label("Score mínimo"),
+                minScore,
+                new Label("Máx. total"),
+                maxPositions
+        );
+        configGrid.addRow(
+                1,
+                new Label("Máx. Argentina"),
+                maxArgentina,
+                new Label("Máx. Internacional"),
+                maxInternational
+        );
+        configGrid.addRow(
+                2,
+                new Label("Máx. Crypto"),
+                maxCrypto,
+                new Label("Riesgo global %"),
+                globalRisk
+        );
+        configGrid.addRow(
+                3,
+                new Label("Riesgo por operación %"),
+                tradeRisk,
+                new Label("Capital por operación %"),
+                capitalPerTrade
+        );
+        configGrid.addRow(
+                4,
+                new Label("Stop Loss %"),
+                stop,
+                new Label("Take Profit %"),
+                take
+        );
+
+        ListView<String> ranking = new ListView<>();
+        ranking.getStyleClass().add("portfolio-ranking");
+        ranking.setPrefHeight(220);
+
+        Label rankingTitle = new Label(
+                "Ranking continuo del Scanner"
+        );
+        rankingTitle.getStyleClass().add("paper-active-account");
+
+        Label rankingHelp = new Label(
+                "Se actualiza con cada ciclo de Cartera AUTO. "
+                        + "Muestra Score, señal, estrategia y decisión."
+        );
+        rankingHelp.setWrapText(true);
+        rankingHelp.getStyleClass().add("paper-note");
+
+        Runnable refreshPortfolioUi = () -> {
+            positions.setText(
+                    "Total abiertas: "
+                            + paperTradingService.openPositionCount()
+            );
+
+            argentinaCount.setText(
+                    "Argentina: "
+                            + paperTradingService
+                                    .openPositionCountByMarket(
+                                            "argentina"
+                                    )
+            );
+            internationalCount.setText(
+                    "Internacional: "
+                            + paperTradingService
+                                    .openPositionCountByMarket(
+                                            "stocks"
+                                    )
+            );
+            cryptoCount.setText(
+                    "Crypto: "
+                            + paperTradingService
+                                    .openPositionCountByMarket(
+                                            "crypto"
+                                    )
+            );
+
+            arsExposure.setText(
+                    String.format(
+                            "Exposición ARS: AR$ %,.2f · %.2f%%",
+                            paperTradingService
+                                    .totalExposureAmount("ARS"),
+                            paperTradingService
+                                    .exposurePct("ARS")
+                    )
+            );
+            usdExposure.setText(
+                    String.format(
+                            "Exposición USD: US$ %,.2f · %.2f%%",
+                            paperTradingService
+                                    .totalExposureAmount("USD"),
+                            paperTradingService
+                                    .exposurePct("USD")
+                    )
+            );
+
+            arsRisk.setText(
+                    String.format(
+                            "Riesgo abierto ARS: AR$ %,.2f · %.2f%%",
+                            paperTradingService.openRiskAmount("ARS"),
+                            paperTradingService.openRiskPct("ARS")
+                    )
+            );
+            usdRisk.setText(
+                    String.format(
+                            "Riesgo abierto USD: US$ %,.2f · %.2f%%",
+                            paperTradingService.openRiskAmount("USD"),
+                            paperTradingService.openRiskPct("USD")
+                    )
+            );
+
+            ranking.setItems(
+                    FXCollections.observableArrayList(
+                            paperTradingService
+                                    .portfolioRanking()
+                                    .stream()
+                                    .map(candidate ->
+                                            String.format(
+                                                    "%s · %s · Score %d · %s · %s · %s",
+                                                    candidate.symbol(),
+                                                    candidate.market(),
+                                                    candidate.score(),
+                                                    candidate.signal(),
+                                                    candidate.strategy(),
+                                                    candidate.decision()
+                                            )
+                                    )
+                                    .toList()
+                    )
+            );
+        };
+
+        refreshPortfolioUi.run();
+
+        VBox exposureBox = new VBox(
+                6,
+                new Label("Exposición y riesgo"),
+                positions,
+                new HBox(
+                        16,
+                        argentinaCount,
+                        internationalCount,
+                        cryptoCount
+                ),
+                arsExposure,
+                arsRisk,
+                usdExposure,
+                usdRisk
+        );
+        exposureBox.getStyleClass().add("portfolio-exposure-box");
+        exposureBox.setPadding(new Insets(12));
+
+        Label explanation = new Label(
+                "Cada 60 segundos se escanean todas las watchlists. "
+                        + "Para abrir una posición se exige señal ENTRADA, "
+                        + "Score mínimo, espacio en el límite total y en el "
+                        + "límite del mercado, efectivo disponible y margen "
+                        + "de riesgo global. ARS y USD se controlan por separado."
+        );
+        explanation.setWrapText(true);
+        explanation.getStyleClass().add("paper-note");
+
+        Label warning = new Label(
+                "Paper Trading solamente · no envía órdenes reales"
+        );
+        warning.getStyleClass().add("warning-badge");
+
+        Button save = new Button("Guardar");
+        save.getStyleClass().add("primary-button");
+
+        Button runNow = new Button("Ejecutar ahora");
+        runNow.getStyleClass().add("secondary-button");
+
+        Button close = new Button("Cerrar");
+        close.getStyleClass().add("secondary-button");
+
+        Label statusLabel = new Label(
+                current.enabled()
+                        ? "Cartera AUTO activa"
+                        : "Cartera AUTO pausada"
+        );
+        statusLabel.getStyleClass().add("paper-auto-run-status");
+
+        Runnable saveConfig = () -> {
+            try {
+                PaperPortfolioAutoConfig config =
+                        new PaperPortfolioAutoConfig(
+                                enabled.isSelected(),
+                                Integer.parseInt(
+                                        minScore.getText().trim()
+                                ),
+                                Integer.parseInt(
+                                        maxPositions.getText().trim()
+                                ),
+                                Integer.parseInt(
+                                        maxArgentina.getText().trim()
+                                ),
+                                Integer.parseInt(
+                                        maxInternational.getText().trim()
+                                ),
+                                Integer.parseInt(
+                                        maxCrypto.getText().trim()
+                                ),
+                                parsePaperNumber(
+                                        globalRisk.getText(),
+                                        true
+                                ),
+                                parsePaperNumber(
+                                        tradeRisk.getText(),
+                                        true
+                                ),
+                                parsePaperNumber(
+                                        capitalPerTrade.getText(),
+                                        true
+                                ),
+                                parsePaperNumber(
+                                        stop.getText(),
+                                        true
+                                ),
+                                parsePaperNumber(
+                                        take.getText(),
+                                        true
+                                )
+                        );
+
+                validatePortfolioAutoConfig(config);
+                paperTradingService.setPortfolioAutoConfig(config);
+
+                // Cartera AUTO y AUTO de un solo activo son excluyentes.
+                if (config.enabled()) {
+                    PaperAutoConfig single =
+                            paperTradingService.autoConfig();
+
+                    if (single != null && single.enabled()) {
+                        paperTradingService.setAutoConfig(
+                                new PaperAutoConfig(
+                                        false,
+                                        single.symbol(),
+                                        single.marketType(),
+                                        single.source(),
+                                        single.currency(),
+                                        single.timeframe(),
+                                        single.period(),
+                                        single.strategy(),
+                                        single.maxCapital(),
+                                        single.riskPct(),
+                                        single.stopLossPct(),
+                                        single.takeProfitPct()
+                                )
+                        );
+                    }
+                }
+
+                statusLabel.setText(
+                        config.enabled()
+                                ? "Cartera AUTO activa"
+                                : "Cartera AUTO pausada"
+                );
+
+                paperTradingService.addAutoLog(
+                        "PORTFOLIO_CONFIG",
+                        config.enabled()
+                                ? "Cartera AUTO activada · score >= "
+                                + config.minScore()
+                                + " · máximo "
+                                + config.maxPositions()
+                                + " posiciones"
+                                : "Cartera AUTO pausada"
+                );
+
+                refreshPortfolioUi.run();
+            } catch (Exception ex) {
+                showPaperError(ex.getMessage());
+            }
+        };
+
+        save.setOnAction(e -> saveConfig.run());
+
+        runNow.setOnAction(e -> {
+            saveConfig.run();
+
+            PaperPortfolioAutoConfig config =
+                    paperTradingService.portfolioAutoConfig();
+
+            if (!config.enabled()) {
+                statusLabel.setText(
+                        "Activá Cartera AUTO para ejecutar."
+                );
+                return;
+            }
+
+            runNow.setDisable(true);
+            statusLabel.setText(
+                    "Escaneando watchlists y evaluando cartera..."
+            );
+
+            Task<PaperPortfolioAutoResult> task =
+                    new Task<>() {
+                        @Override
+                        protected PaperPortfolioAutoResult call()
+                                throws Exception {
+                            return paperPortfolioAutoEngine
+                                    .runOnce(config);
+                        }
+                    };
+
+            task.setOnSucceeded(event -> {
+                PaperPortfolioAutoResult result =
+                        task.getValue();
+
+                statusLabel.setText(
+                        result.scanned()
+                                + " escaneados · "
+                                + result.entries()
+                                + " entradas · "
+                                + result.exits()
+                                + " salidas · "
+                                + result.skipped()
+                                + " omitidos"
+                );
+
+                refreshPortfolioUi.run();
+                runNow.setDisable(false);
+            });
+
+            task.setOnFailed(event -> {
+                Throwable error = task.getException();
+                statusLabel.setText(
+                        "ERROR · "
+                                + (
+                                error == null
+                                        ? "desconocido"
+                                        : error.getMessage()
+                        )
+                );
+                runNow.setDisable(false);
+            });
+
+            Thread thread = new Thread(
+                    task,
+                    "portfolio-auto-manual"
+            );
+            thread.setDaemon(true);
+            thread.start();
+        });
+
+        close.setOnAction(e -> dialog.close());
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox actions = new HBox(
+                10,
+                statusLabel,
+                spacer,
+                runNow,
+                save,
+                close
+        );
+        actions.setAlignment(Pos.CENTER_LEFT);
+
+        VBox rankingBox = new VBox(
+                6,
+                rankingTitle,
+                rankingHelp,
+                ranking
+        );
+        VBox.setVgrow(ranking, Priority.ALWAYS);
+
+        VBox content = new VBox(
+                12,
+                new Label("Cartera AUTO multi-activo"),
+                warning,
+                enabled,
+                configGrid,
+                exposureBox,
+                rankingBox,
+                explanation,
+                actions
+        );
+        content.setPadding(new Insets(18));
+        content.getStyleClass().addAll(
+                "paper-root",
+                "portfolio-auto-root"
+        );
+
+        ScrollPane scroll = new ScrollPane(content);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(
+                ScrollPane.ScrollBarPolicy.NEVER
+        );
+        scroll.setVbarPolicy(
+                ScrollPane.ScrollBarPolicy.AS_NEEDED
+        );
+        scroll.getStyleClass().add("paper-root");
+
+        Scene scene = new Scene(scroll, 820, 760);
+        scene.getStylesheets().add(
+                IaTradexApp.class
+                        .getResource("/com/iatradex/theme.css")
+                        .toExternalForm()
+        );
+
+        dialog.setScene(scene);
+        dialog.setMinWidth(720);
+        dialog.setMinHeight(620);
+
+        Timeline uiRefresh = new Timeline(
+                new KeyFrame(
+                        Duration.seconds(2),
+                        e -> refreshPortfolioUi.run()
+                )
+        );
+        uiRefresh.setCycleCount(Timeline.INDEFINITE);
+        dialog.setOnShown(e -> uiRefresh.play());
+        dialog.setOnHidden(e -> uiRefresh.stop());
+
+        try {
+            dialog.getIcons().add(
+                    new Image(
+                            IaTradexApp.class.getResourceAsStream(
+                                    "/com/iatradex/icon.png"
+                            )
+                    )
+            );
+        } catch (Exception ignored) {
+        }
+
+        dialog.showAndWait();
+    }
+
+
+    private void validatePortfolioAutoConfig(
+            PaperPortfolioAutoConfig config
+    ) {
+        if (config.minScore() < 0
+                || config.minScore() > 100) {
+            throw new IllegalArgumentException(
+                    "El Score mínimo debe estar entre 0 y 100."
+            );
+        }
+
+        if (config.maxPositions() < 1
+                || config.maxPositions() > 50) {
+            throw new IllegalArgumentException(
+                    "Máximo de posiciones debe estar entre 1 y 50."
+            );
+        }
+
+        if (config.maxArgentinaPositions() < 1
+                || config.maxArgentinaPositions() > 50
+                || config.maxInternationalPositions() < 1
+                || config.maxInternationalPositions() > 50
+                || config.maxCryptoPositions() < 1
+                || config.maxCryptoPositions() > 50) {
+            throw new IllegalArgumentException(
+                    "Los límites por mercado deben estar entre 1 y 50."
+            );
+        }
+
+        if (config.maxGlobalRiskPct() <= 0.0
+                || config.maxGlobalRiskPct() > 100.0) {
+            throw new IllegalArgumentException(
+                    "Riesgo global debe estar entre 0 y 100%."
+            );
+        }
+
+        if (config.riskPerTradePct() <= 0.0
+                || config.riskPerTradePct()
+                > config.maxGlobalRiskPct()) {
+            throw new IllegalArgumentException(
+                    "Riesgo por operación debe ser mayor que 0 "
+                            + "y no superar el riesgo global."
+            );
+        }
+
+        if (config.maxCapitalPerTradePct() <= 0.0
+                || config.maxCapitalPerTradePct() > 100.0) {
+            throw new IllegalArgumentException(
+                    "Capital por operación debe estar entre 0 y 100%."
+            );
+        }
+
+        if (config.stopLossPct() <= 0.0
+                || config.stopLossPct() >= 100.0) {
+            throw new IllegalArgumentException(
+                    "Stop Loss debe estar entre 0 y 100%."
+            );
+        }
+
+        if (config.takeProfitPct() <= 0.0) {
+            throw new IllegalArgumentException(
+                    "Take Profit debe ser mayor que 0%."
+            );
+        }
     }
 
     private VBox labeledPaperControl(
@@ -3217,8 +4610,8 @@ public final class IaTradexApp extends Application {
     }
 
     private FlowPane createMetrics() {
-        FlowPane pane = new FlowPane(7, 7);
-        pane.setPrefWrapLength(1450);
+        FlowPane pane = new FlowPane(4, 4);
+        pane.setPrefWrapLength(1500);
         pane.setAlignment(Pos.TOP_LEFT);
         pane.getStyleClass().add("metrics-flow");
 
@@ -3404,22 +4797,71 @@ public final class IaTradexApp extends Application {
 
     private VBox metricCard(String title, Label value) {
         Label caption = muted(title);
+        caption.getStyleClass().add("metric-caption");
+        caption.setTextOverrun(OverrunStyle.ELLIPSIS);
 
-        VBox box = new VBox(3, caption, value);
-        box.setPadding(new Insets(8, 10, 8, 10));
+        double baseWidth = switch (title) {
+            case "CAPITAL FINAL" -> 108;
+            case "RETORNO" -> 66;
+            case "BUY & HOLD" -> 74;
+            case "DRAWDOWN MÁX." -> 84;
+            case "WIN RATE" -> 68;
+            case "PROFIT FACTOR" -> 80;
+            case "SHARPE" -> 60;
+            case "OPERACIONES" -> 76;
+            case "GANANCIA MEDIA",
+                 "PÉRDIDA MEDIA" -> 100;
+            default -> 72;
+        };
+
+        VBox box = new VBox(2, caption, value);
+        box.setPadding(new Insets(5, 6, 5, 6));
         box.getStyleClass().add("metric-card");
 
-        // Compacta la tarjeta, pero permite que crezca cuando
-        // el título o un número grande necesitan más espacio.
-        box.setMinWidth(102);
-        box.setPrefWidth(Region.USE_COMPUTED_SIZE);
-        box.setMaxWidth(Region.USE_COMPUTED_SIZE);
+        caption.setMinWidth(0);
+        caption.setPrefWidth(baseWidth - 12);
+        caption.setMaxWidth(baseWidth - 12);
 
-        value.setMinWidth(Region.USE_PREF_SIZE);
-        caption.setMinWidth(Region.USE_PREF_SIZE);
+        value.setMinWidth(0);
+        value.setPrefWidth(Region.USE_COMPUTED_SIZE);
+        value.setMaxWidth(Region.USE_COMPUTED_SIZE);
+
+        Runnable resize = () -> {
+            Text measure = new Text(
+                    value.getText() == null ? "" : value.getText()
+            );
+            measure.setFont(value.getFont());
+
+            double valueWidth = Math.ceil(
+                    measure.getLayoutBounds().getWidth()
+            );
+
+            double width = Math.max(
+                    baseWidth,
+                    valueWidth + 18
+            );
+
+            box.setMinWidth(width);
+            box.setPrefWidth(width);
+            box.setMaxWidth(width);
+
+            caption.setPrefWidth(width - 12);
+            caption.setMaxWidth(width - 12);
+        };
+
+        value.textProperty().addListener(
+                (obs, oldValue, newValue) -> resize.run()
+        );
+
+        value.fontProperty().addListener(
+                (obs, oldFont, newFont) -> resize.run()
+        );
+
+        Platform.runLater(resize);
 
         return box;
     }
+
 
     private VBox panel(String titleText, Node node) {
         Label title = new Label(titleText);
@@ -3524,6 +4966,16 @@ public final class IaTradexApp extends Application {
         );
 
         return table;
+    }
+
+    private static void matchTopControlHeight(
+            Control... controls
+    ) {
+        for (Control control : controls) {
+            control.setMinHeight(34);
+            control.setPrefHeight(34);
+            control.setMaxHeight(34);
+        }
     }
 
     private static void fixedWidth(Control control, double width) {

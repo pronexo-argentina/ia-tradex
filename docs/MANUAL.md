@@ -1,533 +1,636 @@
-# Manual de IA-TradeX
+# Manual de usuario · IA-TradeX v1.0.0
 
-Este manual parte desde cero y no presupone experiencia previa en trading.
+Este manual está pensado para una persona sin experiencia previa en trading.
 
-## Qué hace IA-TradeX
+IA-TradeX es una aplicación de análisis y simulación. No envía órdenes reales y los resultados históricos no garantizan resultados futuros.
 
-IA-TradeX descarga precios históricos reales, calcula indicadores técnicos y simula qué habría ocurrido si una estrategia hubiese operado en ese período.
+## 1. Pantalla principal
 
-El resultado de un backtest no predice el futuro. Sirve para estudiar una estrategia bajo datos pasados.
+La barra superior permite elegir:
 
-## Mercado
+- **Mercado**
+- **Fuente**
+- **Activo**
+- **Vela**
+- **Período**
+
+Acciones principales:
+
+- **Analizar mercado**
+- **Scanner**
+- **Performance**
+- **Paper Trading**
+
+En macOS, **Acerca de IA-TradeX** está en el menú nativo superior de la aplicación.
+
+## 2. Mercados
 
 ### Criptomonedas
 
-Una criptomoneda como Bitcoin puede negociarse contra otra moneda. `BTC/USDT` significa Bitcoin cotizado en USDT.
+Fuentes disponibles:
 
-IA-TradeX puede consultar actualmente Binance y Kraken.
+- Binance
+- Kraken
 
-### Acciones y ETF
+Ejemplos:
 
-Una acción representa una participación en una empresa. Un ETF es un fondo que cotiza en bolsa.
+```text
+BTC/USDT
+ETH/USDT
+```
 
-En el selector **Acciones / ETF** podés escribir un ticker o el nombre de una empresa. Ejemplos:
+### Argentina
 
-- `AAPL` o `Apple`
-- `MSFT` o `Microsoft`
-- `NVDA` o `NVIDIA`
-- `YPF`
+Fuente:
 
-El buscador espera brevemente mientras escribís y muestra sugerencias con ticker, nombre y logo.
+```text
+Open BYMADATA
+```
 
-`YPF` obtenido desde Yahoo corresponde al ADR negociado en Estados Unidos, no a la acción local de BYMA cotizada en pesos.
+Los precios se muestran en ARS.
 
-## Vela
+Puede incluir acciones argentinas y CEDEARs. Los datos públicos pueden tener aproximadamente 20 minutos de demora.
 
-Una vela resume el movimiento de precio de un período.
+### Internacional
+
+Fuente:
+
+```text
+Yahoo Finance
+```
+
+Permite buscar acciones y otros instrumentos por ticker o nombre.
+
+Ejemplos:
+
+```text
+AAPL
+MSFT
+NVDA
+ASML
+```
+
+## 3. Qué es una vela
+
+Una vela resume el movimiento del precio durante un intervalo.
 
 Incluye:
 
-- Open: precio de apertura
+- Open: apertura
 - High: máximo
 - Low: mínimo
 - Close: cierre
-- Volume: volumen negociado
+- Volume: volumen
 
-IA-TradeX permite velas de 1 hora, 4 horas y 1 día.
+Velas disponibles según el mercado:
 
-## Período histórico
+```text
+1h
+4h
+1d
+```
 
-Indica cuánto pasado se analizará:
+Argentina utiliza actualmente histórico diario en la interfaz principal.
 
-- 1m: aproximadamente un mes
-- 3m: aproximadamente tres meses
-- 6m: aproximadamente seis meses
-- 1y: aproximadamente un año
+## 4. Período
 
-## EMA
+El período define cuánto pasado se analiza:
 
-La EMA es una media móvil que da más peso a los precios recientes.
+```text
+1m  = aproximadamente un mes
+3m  = aproximadamente tres meses
+6m  = aproximadamente seis meses
+1y  = aproximadamente un año
+```
 
-La estrategia base compara:
+## 5. Indicadores
+
+### EMA
+
+EMA significa Exponential Moving Average.
+
+IA-TradeX usa:
 
 - EMA 12
 - EMA 26
 
-Cuando la EMA rápida pasa sobre la lenta se interpreta como cambio a régimen alcista. Cuando pasa debajo, bajista.
+La EMA 12 reacciona más rápido a cambios recientes que la EMA 26.
 
-## RSI
+### RSI
 
-RSI significa Relative Strength Index.
-
-Se expresa entre 0 y 100.
+RSI va de 0 a 100.
 
 Como referencia general:
 
-- más de 70: sobrecomprado
-- menos de 30: sobrevendido
-- entre 50 y 70: momentum positivo sin estar necesariamente sobrecomprado
+- arriba de 70: zona alta/sobrecomprada;
+- debajo de 30: zona baja/sobrevendida;
+- entre 50 y 70: puede acompañar momentum positivo.
 
-## ATR
+No debe utilizarse de forma aislada.
 
-ATR mide volatilidad. No indica por sí solo si el precio subirá o bajará.
+### ATR
 
-## Stop Loss
+ATR mide volatilidad.
 
-Es un nivel de salida destinado a limitar una pérdida.
+Un ATR alto indica movimientos relativamente amplios, pero no dice si el precio va a subir o bajar.
 
-La estrategia base usa 2%.
+## 6. Régimen de mercado
 
-## Take Profit
+IA-TradeX clasifica el contexto como:
 
-Es un objetivo de salida con ganancia.
+- `ALCISTA`
+- `BAJISTA`
+- `LATERAL`
 
-La estrategia base usa 4%.
+También estima fuerza y volatilidad:
 
-## Comisión
+```text
+BAJA
+MEDIA
+ALTA
+```
 
-Una operación real puede tener costos. El backtest incluye una comisión simulada.
+Las estrategias compatibles son una clasificación por reglas. No significa que sean rentables ni recomendadas.
 
-## Slippage
-
-El precio al que querés operar y el precio real de ejecución pueden diferir. Esa diferencia se denomina slippage.
-
-IA-TradeX incorpora slippage en el backtest.
-
-## Backtest
-
-El backtest reproduce la estrategia sobre precios históricos.
-
-Para reducir look-ahead bias, una señal detectada en una vela se ejecuta en la apertura de la vela siguiente.
-
-## Capital final
-
-Es cuánto dinero habría quedado al finalizar la simulación partiendo del capital inicial.
-
-## Retorno
-
-Es el cambio porcentual del capital.
-
-## Buy & Hold
-
-Es la comparación contra comprar el activo al comienzo y mantenerlo hasta el final.
-
-Una estrategia debería compararse contra alternativas simples, no evaluarse de forma aislada.
-
-## Drawdown
-
-Mide cuánto cayó el capital desde un máximo anterior.
-
-Un drawdown de -10% significa que, desde algún máximo, el capital llegó a caer 10%.
-
-## Win Rate
-
-Porcentaje de operaciones cerradas con ganancia.
-
-Un Win Rate alto no garantiza una estrategia rentable: también importa cuánto se gana al acertar y cuánto se pierde al fallar.
-
-## Profit Factor
-
-Compara ganancias brutas contra pérdidas brutas.
-
-- superior a 1: ganancias brutas mayores a pérdidas brutas
-- inferior a 1: pérdidas brutas mayores a ganancias brutas
-
-## Sharpe Ratio
-
-Relaciona retorno con variabilidad de los resultados.
-
-Debe interpretarse junto con otras métricas; no alcanza por sí solo para decidir si una estrategia es buena.
-
-## Señal técnica
-
-La señal visible actualmente no es Machine Learning.
-
-Es una regla explicable basada principalmente en EMA y RSI.
-
-## Importante
-
-IA-TradeX es una herramienta educativa y de investigación. No garantiza resultados futuros ni constituye asesoramiento financiero.
-
-
-## Ejecutable de escritorio
-
-Durante el desarrollo se puede iniciar IA-TradeX con Maven.
-
-La versión distribuible se genera como `IA-TradeX.app` en macOS. Esa aplicación se abre con doble clic y contiene el runtime necesario para ejecutarse, por lo que el usuario final no necesita iniciar una terminal.
-
-El proyecto incluye además el icono oficial de IA-TradeX y un script para generar un instalador `.dmg`.
-
-
-## Comparador de estrategias
-
-Después de analizar un mercado, IA-TradeX ejecuta cuatro estrategias sobre los mismos precios históricos.
+## 7. Estrategias
 
 ### EMA Cross
 
-Busca cruces entre EMA 12 y EMA 26. Es la estrategia base con la que comenzó el proyecto.
+Busca cruces entre EMA 12 y EMA 26.
 
 ### Momentum
 
-Busca activos que ya muestran impulso positivo. No intenta comprar simplemente porque el precio subió: exige también tendencia EMA favorable y un RSI compatible.
+Busca continuidad de impulso positivo.
 
 ### Mean Reversion
 
-Parte de la idea de que un precio temporalmente muy alejado de su media puede regresar hacia ella. Busca RSI bajo y precio por debajo de la EMA lenta.
+Busca posibles retornos hacia la media después de movimientos extremos.
 
 ### Breakout
 
-Busca una ruptura por encima de máximos recientes. La entrada exige que el cierre supere el máximo de las 20 velas anteriores.
+Busca rupturas sobre máximos recientes.
 
-### Qué significa "MEJOR HISTÓRICO"
+## 8. Backtesting
 
-La etiqueta **MEJOR HISTÓRICO** significa solamente que esa estrategia obtuvo el mayor retorno en el período que acabás de analizar.
+Un backtest reproduce una estrategia sobre datos históricos.
+
+IA-TradeX intenta evitar el look-ahead bias:
+
+1. la señal se detecta en una vela;
+2. la entrada se ejecuta en la apertura siguiente.
+
+También incorpora:
+
+- comisión simulada;
+- slippage;
+- Stop Loss;
+- Take Profit.
+
+Si Stop y Take se alcanzan dentro de la misma vela, el motor utiliza una resolución conservadora.
+
+## 9. Métricas del backtest
+
+### Capital final
+
+Capital al terminar la simulación.
+
+### Retorno
+
+Cambio porcentual frente al capital inicial.
+
+### Buy & Hold
+
+Resultado de comprar el activo al comienzo y mantenerlo hasta el final.
+
+### Drawdown máximo
+
+Mayor caída desde un máximo previo de la curva de capital.
+
+### Win Rate
+
+Porcentaje de operaciones con ganancia.
+
+### Profit Factor
+
+Ganancias brutas divididas por pérdidas brutas.
+
+### Sharpe
+
+Relaciona retorno con variabilidad. Debe interpretarse junto con otras métricas.
+
+### Ganancia / pérdida media
+
+Promedio de operaciones ganadoras y perdedoras.
+
+## 10. Mejor histórico
+
+La etiqueta **MEJOR HISTÓRICO** significa que esa estrategia obtuvo el mejor resultado dentro del período analizado.
 
 No significa:
 
-- que sea la mejor estrategia en general;
 - que vaya a ganar en el futuro;
-- que deba usarse con dinero real;
-- que haya sido validada fuera de muestra.
+- que sea la mejor estrategia para siempre;
+- que deba utilizarse con dinero real.
 
-Podés seleccionar cualquier fila del comparador para ver sus métricas, curva de capital y operaciones.
-
-
-
-## Mercado Argentina e Internacional
-
-El selector **Mercado** distingue tres grupos:
-
-### Criptomonedas
-
-Usa exchanges como Binance o Kraken.
-
-### Argentina
-
-Busca instrumentos negociados en Buenos Aires. En Yahoo Finance suelen identificarse con el sufijo `.BA`.
-
-Ejemplos:
-
-- `AAPL.BA`: instrumento de Apple negociado en Buenos Aires.
-- otros CEDEARs y acciones locales pueden aparecer con su ticker específico de Buenos Aires.
-
-En este modo IA-TradeX muestra los precios con el prefijo **AR$**.
-
-### Internacional
-
-Busca acciones y ETF en mercados internacionales.
-
-Por ejemplo, `AAPL` representa la acción estadounidense de Apple y se muestra como **US$** en la interfaz actual.
-
-### Por qué los precios son distintos
-
-Un CEDEAR argentino no es una acción extranjera individual convertida simplemente a pesos. Tiene un ratio de conversión, cotiza localmente y su precio también refleja las condiciones del mercado argentino y el tipo de cambio implícito.
-
-Por eso IA-TradeX mantiene separados **Argentina** e **Internacional**.
-
-
-
-
-
-## Datos argentinos con Open BYMADATA
-
-El mercado **Argentina** no necesita configuración previa.
-
-IA-TradeX utiliza Open BYMADATA para buscar CEDEARs y acciones argentinas y obtener cotizaciones locales.
-
-La información puede incluir:
-
-- último precio en pesos;
-- variación;
-- compra;
-- cantidad compradora;
-- venta;
-- cantidad vendedora;
-- apertura;
-- máximo;
-- mínimo;
-- volumen;
-- histórico diario.
-
-Los datos públicos tienen aproximadamente 20 minutos de demora.
-
-### CEDEAR vs acción internacional
-
-Ejemplo:
-
-- `ASML` en **Argentina**: CEDEAR negociado localmente y expresado en ARS.
-- `ASML` en **Internacional**: acción extranjera obtenida mediante Yahoo y expresada en USD.
-
-Aunque compartan un nombre/ticker parecido, son instrumentos diferentes.
-
-
-
-## Régimen de mercado
-
-Un mercado no se comporta siempre de la misma manera. Puede pasar por etapas de tendencia, lateralidad y distintos niveles de volatilidad.
-
-IA-TradeX intenta describir ese contexto mediante el panel **Régimen de mercado**.
-
-### Tendencia alcista
-
-La EMA rápida se encuentra suficientemente por encima de la EMA lenta y el precio tuvo avance positivo durante las últimas 20 velas.
-
-### Tendencia bajista
-
-La EMA rápida está suficientemente por debajo de la lenta y el retorno reciente también es negativo.
-
-### Mercado lateral
-
-No hay evidencia suficiente para clasificarlo como tendencia alcista o bajista.
-
-### Volatilidad
-
-IA-TradeX utiliza ATR como medida de movimiento.
-
-Para evitar comparar con la misma escala un CEDEAR, una acción estadounidense y Bitcoin, compara el ATR porcentual actual con el comportamiento típico del mismo activo dentro del período seleccionado.
-
-### Estrategias compatibles
-
-El sistema muestra estrategias cuya lógica encaja conceptualmente con el régimen detectado.
-
-Por ejemplo, Momentum y Breakout suelen tener más sentido para estudiar movimientos tendenciales, mientras Mean Reversion parte de una lógica más compatible con mercados laterales o desviaciones respecto de la media.
-
-**Compatible no significa rentable ni recomendada.** La tabla de backtesting sigue siendo necesaria para observar qué ocurrió históricamente.
-
-
-
-## Scroll y tamaño de ventana
-
-IA-TradeX adapta su interfaz al ancho disponible.
-
-Si la ventana es angosta:
-
-- los controles superiores pasan a una disposición compacta;
-- las tarjetas se acomodan en varias filas;
-- el panel de régimen distribuye sus datos en más de una línea;
-- el contenido completo puede recorrerse con scroll vertical.
-
-No es necesario maximizar la aplicación para acceder a los gráficos, operaciones o análisis técnico.
-
-
-## Acerca de IA-TradeX
-
-**Autor:** Juan Manuel De Castro  
-**Email:** jm@pronexo.com  
-**Web:** https://www.pronexo.com
-
-IA-TradeX se distribuye bajo la licencia **GNU Affero General Public License v3.0 (AGPL-3.0)**.
-
-
-## Paper Trading
-
-Paper Trading permite practicar operaciones sin usar dinero real.
-
-### Cuentas simuladas
-
-IA-TradeX mantiene dos cuentas separadas, seleccionables mediante los botones visibles **ARS / USD** en la parte superior de Paper Trading:
-
-- **ARS** para instrumentos del mercado argentino;
-- **USD** para instrumentos internacionales y criptomonedas.
-
-El capital inicial es configurable. Mientras una cuenta tenga posiciones abiertas no se puede reiniciar su capital, para evitar inconsistencias.
-
-### Abrir una operación
-
-1. Analizá primero el activo.
-2. Abrí **Paper Trading**.
-3. Elegí la cuenta correspondiente.
-4. Presioná **Comprar activo actual**.
-5. Ingresá la cantidad.
-6. Opcionalmente cargá Stop Loss y Take Profit.
-7. Elegí el contexto o estrategia que querés registrar.
-8. Confirmá **Comprar simulado**.
-
-La operación se abre al último precio disponible en el análisis actual.
-
-### Posiciones abiertas
-
-La tabla muestra:
-
-- activo;
-- cantidad;
-- precio de entrada;
-- precio actual;
-- P&L no realizado;
-- Stop Loss;
-- Take Profit;
-- estrategia y régimen registrados.
-
-El precio actual se refresca cuando volvés a analizar ese mismo activo.
-
-### Cerrar una posición
-
-Seleccioná una posición y presioná **Cerrar posición**.
-
-IA-TradeX propone el último precio conocido y permite modificarlo antes de confirmar el cierre.
-
-El resultado pasa al historial y el efectivo vuelve a la cuenta simulada.
-
-### Persistencia
-
-Las cuentas, posiciones e historial se guardan automáticamente en:
-
-```text
-~/.ia-tradex/paper-trading.json
-```
-
-Por eso, cerrar la aplicación no borra la cartera simulada.
-
-### Actualización automática
-
-Mientras la ventana de Paper Trading está abierta, IA-TradeX consulta automáticamente el precio de cada posición abierta cada **60 segundos**.
-
-También existe el botón **Actualizar ahora** para forzar una consulta inmediata.
-
-La pantalla muestra la hora de la última actualización.
-
-### Stop Loss y Take Profit automáticos
-
-Si una posición tiene Stop Loss o Take Profit:
-
-- si el precio consultado es menor o igual al Stop Loss, IA-TradeX cierra la posición simulada con motivo **Stop Loss automático**;
-- si el precio consultado es mayor o igual al Take Profit, IA-TradeX cierra la posición simulada con motivo **Take Profit automático**.
-
-El cierre pasa al historial y el efectivo vuelve automáticamente a la cuenta simulada correspondiente.
-
-### Limitaciones de esta etapa
-
-- no existen órdenes reales;
-- no hay conexión con brokers;
-- la comprobación se realiza cada 60 segundos, no tick a tick;
-- el precio de salida es el último precio disponible cuando se detecta el disparador;
-- pueden existir saltos entre el nivel configurado y el precio detectado;
-- no se modelan todavía comisiones específicas del broker en Paper Trading.
-
-
-
-## Paper Trading automático por estrategia
-
-Esta función permite que IA-TradeX abra y cierre operaciones simuladas aplicando una estrategia seleccionada.
-
-### Configuración
-
-Primero analizá el activo en la pantalla principal. Luego abrí **Paper Trading** y presioná **Usar activo analizado**.
-
-Configurá:
-
-- **Automático**: activa o pausa el motor;
-- **Estrategia**: EMA Cross, Momentum, Mean Reversion o Breakout;
-- **Capital máx.**: monto máximo que una entrada automática puede utilizar;
-- **Riesgo %**: pérdida teórica máxima buscada según la distancia al Stop Loss;
-- **Stop %**: distancia porcentual del Stop Loss respecto del precio de entrada;
-- **Take %**: distancia porcentual del Take Profit.
-
-Presioná **Guardar AUTO**.
-
-### Cómo toma las decisiones
-
-Cada 60 segundos, mientras Paper Trading esté abierto, el motor vuelve a analizar el activo configurado.
-
-Para las señales utiliza la **última vela cerrada**. Esto evita basar una entrada en una vela que todavía puede cambiar antes de cerrar.
-
-Si hay señal de entrada y no existe ya una posición automática de ese activo y estrategia, calcula la cantidad respetando:
-
-- saldo disponible;
-- capital máximo configurado;
-- riesgo porcentual;
-- distancia al Stop Loss.
-
-Si existe una posición abierta y aparece una señal de salida, la cierra al último precio disponible.
-
-Stop Loss y Take Profit siguen teniendo prioridad mediante el monitor de posiciones.
-
-### Actividad AUTO
-
-La pestaña **Actividad AUTO** conserva las últimas evaluaciones y eventos, por ejemplo:
-
-```text
-BUY   YPFD · Momentum · compra automática ...
-WAIT  YPFD · Momentum · sin señal de entrada
-EXIT  YPFD · Momentum · salida por señal
-ERROR ...
-```
-
-Este registro se guarda junto con el resto del Paper Trading.
-
-### Alcance actual
-
-La primera versión automática administra **un activo configurado a la vez**.
-
-Todavía no escanea todo el mercado ni una lista completa de activos. Esa función se incorporará posteriormente mediante una watchlist/scanner.
-
-
-
-## Watchlist y Scanner
+## 11. Scanner
 
 Abrí **Scanner** desde la barra superior.
 
-La ventana permite trabajar con tres listas independientes:
+Las watchlists se separan en:
 
-- Argentina;
-- Internacional;
-- Criptomonedas.
+- Argentina
+- Internacional
+- Criptomonedas
 
 ### Agregar un activo
 
-1. Elegí el mercado.
-2. Elegí la fuente.
-3. Seleccioná vela y período.
-4. Escribí el ticker o símbolo.
-5. Presioná **Agregar**.
+1. Elegí Mercado.
+2. Elegí Fuente.
+3. Elegí Vela.
+4. Elegí Período.
+5. Escribí el ticker/símbolo.
+6. Presioná **Agregar**.
 
-Las watchlists se guardan en:
+### Quitar un activo
+
+Seleccioná el activo de la watchlist y presioná **Quitar**.
+
+### Escanear
+
+Presioná **Escanear**.
+
+El Scanner analiza los activos en segundo plano para no bloquear JavaFX.
+
+Un error en un símbolo no cancela el resto.
+
+### Auto 60 s
+
+Activa un nuevo escaneo cada 60 segundos mientras la ventana Scanner permanezca abierta.
+
+## 12. Score del Scanner
+
+El Score va de 0 a 100.
+
+Puede considerar:
+
+- tendencia;
+- fuerza;
+- RSI;
+- compatibilidad de estrategia;
+- señal;
+- retorno histórico;
+- volatilidad.
+
+**No es una probabilidad de ganancia.**
+
+Ejemplo conceptual:
+
+```text
+YPFD · Score 84 · ENTRADA · Momentum
+GGAL · Score 56 · ESPERAR · Mean Reversion
+```
+
+Desde un resultado podés:
+
+- abrirlo en el dashboard;
+- enviarlo a Paper Trading AUTO.
+
+## 13. Watchlists
+
+Persistencia:
 
 ```text
 ~/.ia-tradex/watchlists.json
 ```
 
-La instalación inicial incluye ejemplos para facilitar las primeras pruebas.
+Backup:
 
-### Escanear
+```text
+~/.ia-tradex/watchlists.json.bak
+```
 
-Presioná **Escanear**. IA-TradeX analiza cada activo en segundo plano.
+## 14. Paper Trading
 
-La tabla se ordena automáticamente por score descendente.
+Paper Trading permite operar con dinero simulado.
 
-Un error en un símbolo no detiene los demás análisis.
+Cuentas:
 
-### Score
+- ARS
+- USD
 
-El score va de 0 a 100 y sirve únicamente para ordenar técnicamente los resultados.
+### Capital inicial
 
-No significa:
+Puede modificarse mientras no existan posiciones abiertas en esa cuenta.
 
-- porcentaje de acierto;
-- probabilidad de subida;
-- probabilidad de ganancia;
-- recomendación financiera.
+### Comprar manualmente
 
-La explicación de cada fila indica qué factores sumaron o restaron puntos.
+1. Analizá un activo.
+2. Abrí **Paper Trading**.
+3. Elegí ARS o USD.
+4. Presioná **Comprar activo actual**.
+5. Ingresá cantidad.
+6. Configurá Stop/Take si querés.
+7. Confirmá.
 
-### Abrir un resultado
+### Cerrar
 
-Seleccioná una fila y presioná **Abrir en análisis**, o hacé doble clic.
+Seleccioná una posición y presioná **Cerrar posición**.
 
-IA-TradeX carga ese análisis en el dashboard principal.
+### Actualización de precios
 
-### Enviar a Paper Trading AUTO
+Mientras Paper Trading permanece abierto, los precios se consultan aproximadamente cada 60 segundos.
 
-El botón **Enviar a Paper AUTO** prepara ese activo y la estrategia del Scanner en Paper Trading.
+También existe **Actualizar ahora**.
 
-Por seguridad, la automatización queda inicialmente **pausada**. Debe activarse desde Paper Trading después de revisar capital, riesgo, Stop Loss y Take Profit.
+## 15. Stop Loss y Take Profit automáticos
 
+Para una posición long:
+
+- si el precio observado es `<= Stop`, se cierra por Stop Loss;
+- si el precio observado es `>= Take`, se cierra por Take Profit.
+
+El cierre es simulado.
+
+## 16. AUTO por activo
+
+Permite administrar automáticamente un activo analizado.
+
+Parámetros:
+
+- activar / pausar;
+- estrategia;
+- capital máximo;
+- riesgo %;
+- Stop %;
+- Take %.
+
+Las señales usan la última vela cerrada.
+
+La cantidad se limita por capital y riesgo.
+
+## 17. Cartera AUTO multi-activo
+
+Abrí:
+
+```text
+Paper Trading → Cartera AUTO
+```
+
+Parámetros:
+
+- Score mínimo;
+- Máx. total;
+- Máx. Argentina;
+- Máx. Internacional;
+- Máx. Crypto;
+- Riesgo global %;
+- Riesgo por operación %;
+- Capital máximo por operación %;
+- Stop Loss %;
+- Take Profit %.
+
+### Requisitos para abrir una posición
+
+Deben cumplirse todos:
+
+1. candidato válido;
+2. señal `ENTRADA`;
+3. Score mínimo;
+4. no existir una posición duplicada;
+5. no superar el máximo total;
+6. no superar el máximo de su mercado;
+7. tener efectivo;
+8. disponer de presupuesto de riesgo.
+
+### Riesgo global
+
+El riesgo estimado de una posición long es aproximadamente:
+
+```text
+cantidad × (precio de entrada - Stop Loss)
+```
+
+IA-TradeX suma ese riesgo por cuenta ARS/USD.
+
+### Exposición
+
+La exposición es el valor de mercado de las posiciones abiertas.
+
+Se muestra:
+
+- exposición ARS;
+- exposición USD;
+- exposición % sobre equity;
+- riesgo ARS;
+- riesgo USD;
+- riesgo % sobre equity.
+
+### Ranking continuo
+
+Cada ciclo guarda el ranking más reciente.
+
+Decisiones posibles:
+
+```text
+ABIERTA
+SIN ENTRADA
+SCORE BAJO
+LÍMITE TOTAL
+LÍMITE Argentina
+LÍMITE Internacional
+LÍMITE Cripto
+RIESGO GLOBAL
+DUPLICADA
+SIN EFECTIVO
+CANTIDAD 0
+ERROR
+```
+
+## 18. Performance
+
+Abrí **Performance** desde la pantalla principal.
+
+Elegí:
+
+```text
+ARS
+USD
+```
+
+Las monedas nunca se mezclan en las métricas.
+
+### Métricas
+
+- Equity
+- Retorno
+- P&L realizado
+- P&L no realizado
+- Win Rate
+- Profit Factor
+- Drawdown realizado
+- Operaciones cerradas
+
+### Por estrategia
+
+Agrupa el historial según la estrategia registrada.
+
+### Por mercado
+
+Agrupa por Argentina, Internacional, Crypto u otros contextos almacenados.
+
+### Por régimen
+
+Agrupa según el régimen guardado al abrir la operación.
+
+### Métricas por grupo
+
+Cada fila muestra:
+
+- operaciones;
+- Win Rate;
+- P&L;
+- P&L medio %;
+- Profit Factor;
+- drawdown realizado;
+- mejor operación;
+- peor operación.
+
+## 19. Performance vs Buy & Hold
+
+Si hay un análisis actual en la misma moneda, Performance muestra:
+
+- retorno histórico de la estrategia;
+- retorno Buy & Hold;
+- diferencia en puntos porcentuales.
+
+Esta comparación pertenece al backtest actual, no al historial de Paper Trading.
+
+## 20. Exportar CSV
+
+### Operaciones
+
+Botón:
+
+```text
+Exportar operaciones CSV
+```
+
+Incluye:
+
+- símbolo;
+- mercado;
+- moneda;
+- cantidad;
+- entrada;
+- salida;
+- P&L;
+- P&L %;
+- estrategia;
+- régimen;
+- apertura;
+- cierre;
+- motivo.
+
+### Estadísticas
+
+Botón:
+
+```text
+Exportar estadísticas CSV
+```
+
+Exporta:
+
+- resumen de la cuenta seleccionada;
+- estadísticas por estrategia;
+- estadísticas por mercado;
+- estadísticas por régimen.
+
+## 21. Persistencia segura
+
+Directorio:
+
+```text
+~/.ia-tradex/
+```
+
+Archivos:
+
+```text
+paper-trading.json
+paper-trading.json.bak
+watchlists.json
+watchlists.json.bak
+```
+
+La aplicación escribe primero en un temporal y luego reemplaza el archivo principal. Cuando existe un estado anterior también conserva `.bak`.
+
+## 22. Ejecutar desde código
+
+```bash
+mvn clean javafx:run
+```
+
+Validar compilación:
+
+```bash
+./verify-project.sh
+```
+
+## 23. Crear la aplicación macOS
+
+```bash
+./package-macos.sh
+```
+
+Resultado:
+
+```text
+dist/IA-TradeX.app
+```
+
+Crear DMG:
+
+```bash
+./package-macos-dmg.sh
+```
+
+## 24. Icono y menú de macOS
+
+El icono de aplicación/Dock utiliza solamente el isotipo IX.
+
+**Acerca de IA-TradeX** está en el menú nativo de macOS.
+
+## 25. Limitaciones actuales
+
+- no envía órdenes reales;
+- no conecta brokers;
+- no usa Machine Learning todavía;
+- no existe validación walk-forward completa todavía;
+- no existe validación fuera de muestra completa todavía;
+- algunas fuentes públicas pueden estar demoradas;
+- la automatización depende de consultas periódicas, no de ejecución tick-by-tick.
+
+## 26. Próxima etapa
+
+Antes de agregar ML conviene implementar:
+
+1. validación walk-forward;
+2. validación fuera de muestra;
+3. robustez por períodos;
+4. comparación sistemática entre estrategias;
+5. recién después ML.
+
+## 27. Acerca de
+
+**IA-TradeX v1.0.0**
+
+**Autor:** Juan Manuel De Castro  
+**Email:** jm@pronexo.com  
+**Web:** https://www.pronexo.com
+
+Licencia:
+
+```text
+GNU AGPL v3.0
+```

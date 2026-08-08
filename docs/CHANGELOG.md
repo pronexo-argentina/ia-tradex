@@ -1,5 +1,234 @@
 # Changelog
 
+## 1.0.0
+
+### Release base completa
+
+- Primera versión estable de la base funcional de IA-TradeX.
+- Proyecto 100% Java 21 + JavaFX 23.
+- Maven actualizado a `com.iatradex:ia-tradex:1.0.0`.
+- Scripts macOS actualizados para `ia-tradex-1.0.0.jar`.
+
+### Mercados
+
+- Crypto mediante Binance y Kraken.
+- Argentina mediante Open BYMADATA.
+- Internacional mediante Yahoo Finance.
+- Separación ARS / USD.
+- Búsqueda y autocomplete de activos.
+- Datos argentinos públicos sin credenciales.
+
+### Análisis
+
+- EMA 12 / EMA 26.
+- RSI 14.
+- ATR 14.
+- Tendencia, fuerza y volatilidad.
+- Régimen ALCISTA / BAJISTA / LATERAL.
+- Explicación de estrategias compatibles.
+
+### Backtesting
+
+- EMA Cross.
+- Momentum.
+- Mean Reversion.
+- Breakout.
+- Señal en vela cerrada y ejecución posterior.
+- Comisión y slippage simulados.
+- Stop Loss / Take Profit.
+- Capital final, retorno, Buy & Hold, drawdown, Win Rate, Profit Factor, Sharpe y medias.
+- Comparador de estrategias y etiqueta `MEJOR HISTÓRICO`.
+
+### Scanner
+
+- Watchlists persistentes por Argentina, Internacional y Crypto.
+- Scanner manual.
+- Scanner automático cada 60 segundos.
+- Score técnico explicable 0–100.
+- Ranking de oportunidades.
+- Apertura directa del resultado en el dashboard.
+- Envío a Paper Trading AUTO.
+
+### Paper Trading
+
+- Cuentas simuladas ARS y USD.
+- Capital inicial configurable.
+- Operaciones manuales.
+- Posiciones abiertas e historial.
+- P&L y equity.
+- Actualización periódica de precios.
+- Stop Loss / Take Profit automáticos.
+- Persistencia local.
+
+### Automatización
+
+- AUTO por activo y estrategia.
+- Cartera AUTO multi-activo.
+- Score mínimo configurable.
+- Límite total de posiciones.
+- Límites separados para Argentina, Internacional y Crypto.
+- Riesgo global.
+- Riesgo por operación.
+- Capital máximo por operación.
+- Prevención de duplicados.
+- Salidas automáticas por señal.
+- Ranking continuo con decisión explicable.
+
+### Performance
+
+- Nuevo Dashboard de Performance.
+- Métricas separadas por ARS/USD.
+- Equity.
+- Retorno.
+- P&L realizado / no realizado.
+- Win Rate.
+- Profit Factor.
+- Drawdown realizado.
+- Operaciones cerradas.
+- Estadísticas por estrategia.
+- Estadísticas por mercado.
+- Estadísticas por régimen.
+- Mejor y peor operación por agrupación.
+- Comparación del análisis actual contra Buy & Hold.
+
+### Exportación
+
+- Exportación completa de operaciones a CSV.
+- Exportación de estadísticas agregadas a CSV.
+
+### Persistencia
+
+- Escritura mediante archivo temporal.
+- Reemplazo atómico cuando el sistema operativo lo permite.
+- Backup `.bak` de Paper Trading.
+- Backup `.bak` de watchlists.
+
+### macOS
+
+- Packaging `.app`.
+- Packaging `.dmg`.
+- Isotipo IX como icono de aplicación y Dock.
+- `Acerca de IA-TradeX` integrado al menú nativo de macOS.
+- Scripts `.sh` entregados como ejecutables.
+
+### Documentación
+
+- README completamente actualizado para v1.0.0.
+- Manual de usuario reescrito y actualizado.
+- Arquitectura.
+- Checklist QA.
+- Notas de release.
+- Changelog histórico.
+- `.gitignore`.
+- GNU AGPL v3.0.
+
+### Alcance
+
+- IA-TradeX v1.0.0 continúa siendo una plataforma de análisis y simulación.
+- No envía órdenes reales.
+- Machine Learning queda fuera de v1.0.0.
+- Próxima etapa: walk-forward, fuera de muestra y robustez antes de ML.
+
+## 0.12.0
+
+- Límites independientes de posiciones para Argentina, Internacional y Crypto.
+- Compatibilidad automática con configuración persistida de v0.11.x.
+- Panel de exposición y riesgo de Cartera AUTO.
+- Conteo de posiciones abiertas por mercado.
+- Exposición monetaria y porcentual separada para ARS/USD.
+- Riesgo abierto monetario y porcentual separado para ARS/USD.
+- Ranking continuo persistente del Scanner utilizado por Cartera AUTO.
+- Registro de decisión por candidato: abierta, score bajo, sin entrada, límite, riesgo, duplicada, etc.
+- La pantalla de Cartera AUTO refresca exposición y ranking mientras permanece abierta.
+- README y manual actualizados.
+
+
+## 0.11.1
+
+- Eliminado el botón `Menú` de la barra interna de IA-TradeX.
+- `Acerca de IA-TradeX` pasó al menú nativo de la aplicación en macOS.
+- Agregado `Salir de IA-TradeX` al menú nativo.
+- Se utiliza `MenuBar.setUseSystemMenuBar(true)` para integrarlo en la barra superior de macOS, junto al menú de la aplicación.
+- Sin cambios funcionales en Scanner automático, Cartera AUTO ni Paper Trading.
+
+
+## 0.11.0
+
+- Scanner automático opcional cada 60 segundos.
+- Nueva Cartera AUTO multi-activo para Paper Trading.
+- Escaneo de todas las watchlists en cada ciclo de Cartera AUTO.
+- Apertura solo con señal ENTRADA y Score mínimo configurable.
+- Límite configurable de posiciones simultáneas.
+- Riesgo global máximo por cuenta ARS/USD.
+- Riesgo configurable por operación.
+- Capital máximo configurable por operación.
+- Prevención de posiciones duplicadas.
+- Stop Loss y Take Profit independientes por posición.
+- Salida automática por señal de estrategia para posiciones de Cartera AUTO.
+- Registro de actividad en el log AUTO.
+- Cartera AUTO y AUTO de activo único son modos excluyentes.
+- Botón `Cartera AUTO` en Paper Trading.
+- Corregido recorte vertical del botón `Menú`.
+- README y manual actualizados.
+
+
+## 0.10.5
+
+- Botones superiores alineados con la fila de selectores, no con las etiquetas.
+- Analizar mercado, Scanner, Paper Trading y Menú usan la misma altura de 34 px que los ComboBox.
+- Isotipo IX superior aumentado de tamaño para recuperar presencia visual.
+- El isotipo sigue sin texto inferior y conserva el recurso limpio para Dock/macOS.
+- Se mantienen intactas las métricas compactas y la corrección de Período de v0.10.4.
+
+
+## 0.10.4
+
+- Corregido el selector `Período`, que todavía podía mostrar `...`.
+- `Período` ahora usa un `buttonCell` dedicado con texto sin elipsis.
+- Padding interno reducido para mostrar correctamente `1m`, `3m`, `6m` y `1y`.
+- Se mantienen sin cambios las métricas compactas corregidas en v0.10.3.
+- Vela, Scanner y Paper Trading permanecen sin cambios funcionales.
+
+
+## 0.10.3
+
+- Selector `Vela` corregido con `buttonCell` dedicado para evitar que JavaFX muestre `...`.
+- Padding interno de `Vela` reducido y ancho ajustado para `1h`, `4h` y `1d`.
+- Tarjetas de métricas rediseñadas con anchos base mucho más compactos.
+- Retorno, Buy & Hold, Win Rate, Profit Factor, Sharpe y Operaciones ya no reservan espacio innecesario.
+- Las tarjetas crecen dinámicamente solo cuando el valor mostrado necesita más ancho.
+- Espaciado horizontal de métricas reducido.
+- La ventana principal y `Acerca de` muestran `v0.10.3` para poder verificar qué build está ejecutándose.
+- Se conservan el isotipo-only y los iconos de packaging de v0.10.2.
+- Sin cambios funcionales en Scanner ni Paper Trading.
+
+
+## 0.10.2
+
+- Corrección visual del selector `Vela`: ancho útil aumentado para mostrar `1h`, `4h` y `1d`.
+- Métricas redimensionadas con anchos compactos específicos por tipo.
+- Las tarjetas ahora crecen dinámicamente cuando el valor numérico realmente lo necesita.
+- Menor espacio vacío en Retorno, Buy & Hold, Win Rate, Profit Factor, Sharpe y Operaciones.
+- Recurso `icon.png` reemplazado por una versión con solo el isotipo IX.
+- Iconos de packaging regenerados con solo el isotipo.
+- `IA-TradeX.icns` regenerado para que el icono del Dock de macOS no incluya texto.
+- Isotipo superior reducido para evitar recortes y ahorrar espacio.
+
+
+## 0.10.1
+
+- Correcciones gráficas del encabezado principal.
+- El logo superior ahora muestra solo el isotipo mediante viewport, evitando que se corte el texto incluido en `icon.png`.
+- La leyenda `100% JAVA · ANÁLISIS / BACKTEST` se movió a una franja superior fina.
+- La fila principal conserva Mercado, Fuente, Activo, Vela, Período y acciones en una sola línea.
+- Se corrigió el ancho del selector `Vela` para que muestre correctamente `1h`, `4h` y `1d`.
+- Selectores superiores ligeramente compactados.
+- Tarjetas de métricas más ajustadas al contenido.
+- Menor margen lateral en métricas porcentuales y valores cortos.
+- Las métricas monetarias conservan crecimiento automático cuando el valor necesita más ancho.
+- Scanner y Paper Trading permanecen sin cambios funcionales.
+
+
 ## 0.10.0
 
 - Nueva ventana Watchlist + Scanner.

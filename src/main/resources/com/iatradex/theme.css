@@ -803,3 +803,234 @@
     -fx-text-fill: #8190a3;
     -fx-font-size: 10px;
 }
+
+
+/* v0.10.1 graphical polish */
+.top-header {
+    -fx-background-color: #111821;
+}
+
+.top-mode-strip {
+    -fx-background-color: #0c131b;
+    -fx-border-color: transparent transparent #1d2935 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-min-height: 22px;
+    -fx-pref-height: 22px;
+    -fx-max-height: 22px;
+}
+
+.top-mode-label {
+    -fx-text-fill: #59d98e;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+}
+
+.brand-icon-holder {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.single-row-top-bar {
+    -fx-spacing: 9px;
+}
+
+.top-bar-scroll {
+    -fx-fit-to-height: true;
+}
+
+.metrics-flow {
+    -fx-hgap: 5px;
+    -fx-vgap: 5px;
+}
+
+.metric-card {
+    -fx-padding: 7px 8px;
+}
+
+.metric-caption {
+    -fx-font-size: 9px;
+}
+
+.metric-card .metric-value {
+    -fx-font-size: 17px;
+}
+
+
+/* v0.10.2 precision fixes */
+.metric-card {
+    -fx-padding: 6px 7px;
+}
+
+.metric-caption {
+    -fx-font-size: 8.5px;
+}
+
+.metric-card .metric-value {
+    -fx-font-size: 17px;
+}
+
+.single-row-top-bar {
+    -fx-spacing: 8px;
+}
+
+.brand-icon-holder {
+    -fx-padding: 0;
+}
+
+
+/* v0.10.3 exact compact metrics + timeframe */
+.metrics-flow {
+    -fx-hgap: 4px;
+    -fx-vgap: 4px;
+}
+
+.metric-card {
+    -fx-padding: 5px 6px;
+}
+
+.metric-caption {
+    -fx-font-size: 8px;
+}
+
+.metric-card .metric-value {
+    -fx-font-size: 16px;
+}
+
+.combo-box.timeframe-compact .list-cell {
+    -fx-padding: 0 2px 0 4px;
+}
+
+
+/* v0.10.4 period selector */
+.combo-box.period-compact .list-cell {
+    -fx-padding: 0 2px 0 4px;
+}
+
+
+/* v0.10.5 header alignment */
+.single-row-top-bar {
+    -fx-alignment: bottom-left;
+}
+
+.brand-icon-holder {
+    -fx-padding: 0 2px 0 0;
+    -fx-alignment: bottom-center;
+}
+
+.primary-button,
+.secondary-button,
+.top-menu-button {
+    -fx-min-height: 34px;
+    -fx-pref-height: 34px;
+    -fx-max-height: 34px;
+}
+
+
+/* v0.11.0 multi-asset automation */
+.top-menu-button {
+    -fx-padding: 4px 12px;
+    -fx-min-height: 38px;
+    -fx-pref-height: 38px;
+    -fx-max-height: 38px;
+}
+
+.scanner-auto-check {
+    -fx-text-fill: #59d98e;
+    -fx-font-weight: 800;
+    -fx-padding: 18px 4px 0 4px;
+}
+
+.portfolio-auto-root {
+    -fx-background-color: #0d141c;
+}
+
+.portfolio-auto-root .label {
+    -fx-text-fill: #dce6f0;
+}
+
+.portfolio-auto-root .text-field {
+    -fx-background-color: #14202b;
+    -fx-text-fill: #e7edf4;
+    -fx-border-color: #2a3a49;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+}
+
+
+/* v0.11.1 native application menu */
+.system-menu-bar {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+
+/* v0.12.0 portfolio exposure + ranking */
+.portfolio-exposure-box {
+    -fx-background-color: #111b25;
+    -fx-border-color: #273746;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+}
+
+.portfolio-exposure-box > .label:first-child {
+    -fx-font-weight: 900;
+    -fx-text-fill: #f1f5f9;
+}
+
+.portfolio-metric-value {
+    -fx-text-fill: #cbd7e3;
+    -fx-font-size: 11px;
+}
+
+.portfolio-ranking {
+    -fx-background-color: #0f161f;
+    -fx-border-color: #263443;
+    -fx-border-radius: 7px;
+    -fx-background-radius: 7px;
+}
+
+.portfolio-ranking .list-cell {
+    -fx-background-color: #0f161f;
+    -fx-text-fill: #dce6f0;
+    -fx-padding: 7px 10px;
+    -fx-font-size: 11px;
+}
+
+.portfolio-ranking .list-cell:selected {
+    -fx-background-color: #173657;
+}
+
+
+/* v1.0.0 performance dashboard */
+.performance-root {
+    -fx-background-color: #0d141c;
+}
+
+.performance-metric-card {
+    -fx-background-color: #111b25;
+    -fx-border-color: #273746;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+}
+
+.performance-metric-value {
+    -fx-text-fill: #f4f7fb;
+    -fx-font-size: 18px;
+    -fx-font-weight: 900;
+}
+
+.performance-comparison-box {
+    -fx-background-color: #111b25;
+    -fx-border-color: #273746;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+}
+
+.performance-comparison {
+    -fx-text-fill: #aebdcb;
+    -fx-font-size: 12px;
+}
+
+.performance-table {
+    -fx-font-size: 11px;
+}
