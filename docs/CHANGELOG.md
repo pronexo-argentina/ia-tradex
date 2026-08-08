@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.10.0
+
+- Nueva ventana Watchlist + Scanner.
+- Watchlists persistentes separadas para Argentina, Internacional y Crypto.
+- Alta y baja manual de activos.
+- Configuración por fuente, timeframe y período.
+- Scanner ejecutado en segundo plano.
+- Un error individual no cancela el resto del escaneo.
+- Ranking técnico 0–100 explicable.
+- Score basado en tendencia, fuerza, RSI, compatibilidad de estrategia, señal, retorno histórico y volatilidad.
+- Resultados ordenados automáticamente por score.
+- Doble clic o botón para abrir el activo en el dashboard.
+- Integración para enviar un resultado a Paper Trading AUTO.
+- Paper Trading AUTO se mantiene pausado al recibir un activo desde Scanner por seguridad.
+- README y manual actualizados.
+
+
+## 0.9.2
+
+- Encabezado principal rediseñado en una sola fila.
+- El texto IA-TRADEX fue reemplazado por el icono oficial, sin recortes.
+- `Acerca de` se movió al menú superior para liberar espacio.
+- Selectores superiores compactados.
+- Tarjetas de métricas más pequeñas y con ancho automático según su contenido.
+- Menos espacio horizontal desperdiciado en capital, retorno, drawdown, Sharpe y demás métricas.
+
+
 ## 0.9.1
 
 - Corregidas las imágenes del README para GitHub.

@@ -470,3 +470,64 @@ La primera versión automática administra **un activo configurado a la vez**.
 
 Todavía no escanea todo el mercado ni una lista completa de activos. Esa función se incorporará posteriormente mediante una watchlist/scanner.
 
+
+
+## Watchlist y Scanner
+
+Abrí **Scanner** desde la barra superior.
+
+La ventana permite trabajar con tres listas independientes:
+
+- Argentina;
+- Internacional;
+- Criptomonedas.
+
+### Agregar un activo
+
+1. Elegí el mercado.
+2. Elegí la fuente.
+3. Seleccioná vela y período.
+4. Escribí el ticker o símbolo.
+5. Presioná **Agregar**.
+
+Las watchlists se guardan en:
+
+```text
+~/.ia-tradex/watchlists.json
+```
+
+La instalación inicial incluye ejemplos para facilitar las primeras pruebas.
+
+### Escanear
+
+Presioná **Escanear**. IA-TradeX analiza cada activo en segundo plano.
+
+La tabla se ordena automáticamente por score descendente.
+
+Un error en un símbolo no detiene los demás análisis.
+
+### Score
+
+El score va de 0 a 100 y sirve únicamente para ordenar técnicamente los resultados.
+
+No significa:
+
+- porcentaje de acierto;
+- probabilidad de subida;
+- probabilidad de ganancia;
+- recomendación financiera.
+
+La explicación de cada fila indica qué factores sumaron o restaron puntos.
+
+### Abrir un resultado
+
+Seleccioná una fila y presioná **Abrir en análisis**, o hacé doble clic.
+
+IA-TradeX carga ese análisis en el dashboard principal.
+
+### Enviar a Paper Trading AUTO
+
+El botón **Enviar a Paper AUTO** prepara ese activo y la estrategia del Scanner en Paper Trading.
+
+Por seguridad, la automatización queda inicialmente **pausada**. Debe activarse desde Paper Trading después de revisar capital, riesgo, Stop Loss y Take Profit.
+

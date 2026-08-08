@@ -686,3 +686,120 @@
     -fx-border-radius: 6px;
     -fx-background-radius: 6px;
 }
+
+
+/* Compact single-row header */
+.single-row-top-bar {
+    -fx-spacing: 10px;
+}
+
+.top-bar-scroll,
+.top-bar-scroll > .viewport {
+    -fx-background-color: #111821;
+}
+
+.top-bar-scroll {
+    -fx-background-color: #111821;
+    -fx-border-color: transparent transparent #222c38 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0;
+}
+
+.brand-icon-holder {
+    -fx-background-color: transparent;
+    -fx-padding: 2px;
+}
+
+.top-menu-button {
+    -fx-background-color: #17212b;
+    -fx-text-fill: #dce6f0;
+    -fx-font-weight: 700;
+    -fx-padding: 7px 10px;
+    -fx-background-radius: 6px;
+    -fx-border-color: #2b3a49;
+    -fx-border-radius: 6px;
+}
+
+.top-menu-button .label {
+    -fx-text-fill: #dce6f0;
+}
+
+.top-menu-button .arrow {
+    -fx-background-color: #9fb0c2;
+}
+
+/* Compact metric cards with content-driven width */
+.metrics-flow {
+    -fx-hgap: 7px;
+    -fx-vgap: 7px;
+}
+
+.metric-card {
+    -fx-padding: 8px 10px;
+}
+
+.metric-card .muted {
+    -fx-font-size: 10px;
+}
+
+.metric-card .metric-value {
+    -fx-font-size: 18px;
+}
+
+
+/* Watchlist + Scanner */
+.scanner-root {
+    -fx-background-color: #0d141c;
+}
+
+.scanner-controls {
+    -fx-background-color: #111821;
+    -fx-border-color: #263443;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 10px;
+}
+
+.scanner-side {
+    -fx-background-color: #111821;
+    -fx-border-color: #263443;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 10px;
+}
+
+.scanner-side > .label {
+    -fx-text-fill: #f5f7fa;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+}
+
+.scanner-watchlist {
+    -fx-background-color: #0f161f;
+    -fx-border-color: #263443;
+}
+
+.scanner-watchlist .list-cell {
+    -fx-background-color: #0f161f;
+    -fx-text-fill: #dce6f0;
+    -fx-padding: 9px 10px;
+}
+
+.scanner-watchlist .list-cell:selected {
+    -fx-background-color: #173657;
+}
+
+.scanner-table {
+    -fx-font-size: 11px;
+}
+
+.scanner-status {
+    -fx-text-fill: #59d98e;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+}
+
+.scanner-score-help {
+    -fx-text-fill: #8190a3;
+    -fx-font-size: 10px;
+}

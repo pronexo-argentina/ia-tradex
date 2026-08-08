@@ -185,6 +185,52 @@ La ejecución es una simulación por sondeo periódico: no es tick a tick y el p
 
 
 
+
+## Watchlist + Scanner
+
+IA-TradeX incorpora un **Scanner manual** para analizar varios activos desde una watchlist persistente.
+
+Las listas se separan por:
+
+- Argentina;
+- Internacional;
+- Criptomonedas.
+
+El Scanner muestra:
+
+- activo;
+- mercado;
+- régimen;
+- volatilidad;
+- RSI;
+- estrategia técnica seleccionada;
+- señal;
+- score técnico;
+- explicación del score.
+
+### Score técnico 0–100
+
+El score **no representa una probabilidad de ganancia**. Es un ranking explicable que suma o resta puntos según:
+
+- tendencia;
+- fuerza del régimen;
+- RSI;
+- compatibilidad entre régimen y estrategia;
+- existencia de señal de entrada;
+- retorno histórico de la estrategia en el período analizado;
+- volatilidad.
+
+Los resultados se ordenan de mayor a menor score.
+
+Desde un resultado se puede:
+
+- abrir el activo directamente en el dashboard;
+- hacer doble clic para abrirlo;
+- enviarlo a la configuración de **Paper Trading AUTO**.
+
+El escaneo se ejecuta en segundo plano para no bloquear la interfaz. Si un activo falla, el resto de la watchlist continúa analizándose.
+
+
 ## Paper Trading automático por estrategia
 
 IA-TradeX puede automatizar una estrategia sobre **un activo previamente analizado**.

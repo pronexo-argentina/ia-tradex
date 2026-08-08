@@ -20,6 +20,11 @@ import com.iatradex.paper.PaperAutoTradingEngine;
 import com.iatradex.paper.PaperPosition;
 import com.iatradex.paper.PaperRefreshResult;
 import com.iatradex.paper.PaperTradingService;
+import com.iatradex.scanner.ScannerEngine;
+import com.iatradex.scanner.ScannerResult;
+import com.iatradex.scanner.WatchlistItem;
+import com.iatradex.scanner.WatchlistService;
+import com.iatradex.ui.ScannerRow;
 import com.iatradex.ui.TradeRow;
 import com.iatradex.ui.StrategyRow;
 import com.iatradex.ui.PaperHistoryRow;
@@ -53,6 +58,8 @@ import javafx.util.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -62,6 +69,8 @@ public final class IaTradexApp extends Application {
     private final MarketService marketService = new MarketService();
     private final AnalysisService analysisService = new AnalysisService(marketService);
     private final PaperTradingService paperTradingService = new PaperTradingService();
+    private final WatchlistService watchlistService = new WatchlistService();
+    private final ScannerEngine scannerEngine = new ScannerEngine(analysisService);
     private final PaperAutoTradingEngine paperAutoTradingEngine = new PaperAutoTradingEngine(analysisService, marketService, paperTradingService);
 
     private final ComboBox<String> marketBox = new ComboBox<>();
@@ -119,7 +128,7 @@ public final class IaTradexApp extends Application {
 
     private final Button analyzeButton = new Button("Analizar mercado");
     private final Button paperTradingButton = new Button("Paper Trading");
-    private final Button aboutButton = new Button("Acerca de");
+    private final Button scannerButton = new Button("Scanner");
 
     private final DateTimeFormatter chartDate =
             DateTimeFormatter.ofPattern("dd/MM")
@@ -232,15 +241,15 @@ public final class IaTradexApp extends Application {
         periodBox.getItems().addAll("1m", "3m", "6m", "1y");
         periodBox.setValue("3m");
 
-        fixedWidth(marketBox, 150);
-        fixedWidth(sourceBox, 110);
-        fixedWidth(cryptoSymbolBox, 300);
-        fixedWidth(timeframeBox, 85);
-        fixedWidth(periodBox, 95);
+        fixedWidth(marketBox, 132);
+        fixedWidth(sourceBox, 104);
+        fixedWidth(cryptoSymbolBox, 245);
+        fixedWidth(timeframeBox, 76);
+        fixedWidth(periodBox, 82);
 
         stockSearchField.setPromptText("Buscar acción o ticker...");
         stockSearchField.setText("AAPL — Apple Inc.");
-        fixedWidth(stockSearchField, 255);
+        fixedWidth(stockSearchField, 205);
         stockSearchField.getStyleClass().add("asset-search-field");
 
         stockSearchMenu.getStyleClass().add("asset-search-menu");
@@ -305,13 +314,13 @@ public final class IaTradexApp extends Application {
         );
         stockSearchControl.setAlignment(Pos.CENTER_LEFT);
         stockSearchControl.getStyleClass().add("asset-search-control");
-        fixedWidth(stockSearchControl, 300);
+        fixedWidth(stockSearchControl, 245);
 
         assetSelectorPane.getChildren().addAll(
                 cryptoSymbolBox,
                 stockSearchControl
         );
-        fixedWidth(assetSelectorPane, 300);
+        fixedWidth(assetSelectorPane, 245);
 
         cryptoSymbolBox.managedProperty().bind(cryptoSymbolBox.visibleProperty());
         stockSearchControl.managedProperty().bind(stockSearchControl.visibleProperty());
@@ -393,9 +402,30 @@ public final class IaTradexApp extends Application {
         );
     }
 
-    private FlowPane createTopBar() {
-        Label brand = new Label("IA-TRADEX");
-        brand.getStyleClass().add("brand");
+    private Node createTopBar() {
+        ImageView brandIcon = new ImageView();
+
+        try {
+            brandIcon.setImage(
+                    new Image(
+                            IaTradexApp.class.getResourceAsStream(
+                                    "/com/iatradex/icon.png"
+                            )
+                    )
+            );
+        } catch (Exception ignored) {
+        }
+
+        brandIcon.setFitWidth(44);
+        brandIcon.setFitHeight(44);
+        brandIcon.setPreserveRatio(true);
+        brandIcon.setSmooth(true);
+
+        StackPane brandHolder = new StackPane(brandIcon);
+        brandHolder.getStyleClass().add("brand-icon-holder");
+        brandHolder.setMinSize(54, 54);
+        brandHolder.setPrefSize(54, 54);
+        brandHolder.setMaxSize(54, 54);
 
         Label mode = new Label("100% JAVA · ANÁLISIS / BACKTEST");
         mode.getStyleClass().add("paper-badge");
@@ -406,8 +436,15 @@ public final class IaTradexApp extends Application {
         paperTradingButton.getStyleClass().add("secondary-button");
         paperTradingButton.setOnAction(e -> showPaperTrading());
 
-        aboutButton.getStyleClass().add("secondary-button");
-        aboutButton.setOnAction(e -> showAbout());
+        scannerButton.getStyleClass().add("secondary-button");
+        scannerButton.setOnAction(e -> showScanner());
+
+        MenuItem aboutItem = new MenuItem("Acerca de IA-TradeX");
+        aboutItem.setOnAction(e -> showAbout());
+
+        MenuButton menuButton = new MenuButton("Menú");
+        menuButton.getItems().add(aboutItem);
+        menuButton.getStyleClass().add("top-menu-button");
 
         VBox marketSelector = labeledSelector("Mercado", marketBox);
         VBox sourceSelector = labeledSelector("Fuente", sourceBox);
@@ -415,38 +452,38 @@ public final class IaTradexApp extends Application {
         VBox timeframeSelector = labeledSelector("Vela", timeframeBox);
         VBox periodSelector = labeledSelector("Período", periodBox);
 
-        HBox actions = new HBox(
+        HBox top = new HBox(
                 10,
-                mode,
-                analyzeButton,
-                paperTradingButton,
-                aboutButton
-        );
-        actions.setAlignment(Pos.CENTER_LEFT);
-        actions.getStyleClass().add("top-actions");
-
-        FlowPane top = new FlowPane(
-                12,
-                8,
-                brand,
+                brandHolder,
                 marketSelector,
                 sourceSelector,
                 assetSelector,
                 timeframeSelector,
                 periodSelector,
-                actions
+                mode,
+                analyzeButton,
+                scannerButton,
+                paperTradingButton,
+                menuButton
         );
 
-        top.setPadding(new Insets(10, 16, 10, 16));
+        top.setPadding(new Insets(8, 14, 8, 14));
         top.setAlignment(Pos.CENTER_LEFT);
-        top.setPrefWrapLength(1500);
         top.getStyleClass().addAll(
                 "top-bar",
-                "responsive-top-bar"
+                "single-row-top-bar"
         );
 
-        return top;
+        ScrollPane topScroll = new ScrollPane(top);
+        topScroll.setFitToHeight(true);
+        topScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        topScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        topScroll.setPannable(true);
+        topScroll.getStyleClass().add("top-bar-scroll");
+
+        return topScroll;
     }
+
 
     private VBox labeledSelector(String title, Node control) {
         VBox box = new VBox(4, muted(title), control);
@@ -750,6 +787,678 @@ public final class IaTradexApp extends Application {
         }
 
         return typed.toUpperCase(Locale.ROOT);
+    }
+
+
+    private void showScanner() {
+        Stage window = new Stage();
+        window.initModality(Modality.NONE);
+        window.setTitle("IA-TradeX · Scanner");
+
+        Label title = new Label("Watchlist + Scanner");
+        title.getStyleClass().add("paper-title");
+
+        Label subtitle = new Label(
+                "Ranking técnico explicable · no representa probabilidad de ganancia"
+        );
+        subtitle.getStyleClass().add("paper-subtitle");
+
+        ComboBox<String> marketFilter = new ComboBox<>();
+        marketFilter.getItems().addAll(
+                "Argentina",
+                "Internacional",
+                "Criptomonedas"
+        );
+        marketFilter.setValue(
+                switch (marketType()) {
+                    case "argentina" -> "Argentina";
+                    case "stocks" -> "Internacional";
+                    default -> "Criptomonedas";
+                }
+        );
+        fixedWidth(marketFilter, 150);
+
+        ComboBox<String> sourceFilter = new ComboBox<>();
+        fixedWidth(sourceFilter, 120);
+
+        ComboBox<String> timeframeFilter = new ComboBox<>();
+        fixedWidth(timeframeFilter, 85);
+
+        ComboBox<String> periodFilter = new ComboBox<>();
+        periodFilter.getItems().addAll("1m", "3m", "6m", "1y");
+        periodFilter.setValue("3m");
+        fixedWidth(periodFilter, 85);
+
+        TextField symbolField = new TextField();
+        symbolField.setPromptText("Ticker / símbolo");
+        fixedWidth(symbolField, 155);
+
+        Button addButton = new Button("Agregar");
+        addButton.getStyleClass().add("secondary-button");
+
+        Button removeButton = new Button("Quitar");
+        removeButton.getStyleClass().add("secondary-button");
+
+        Button scanButton = new Button("Escanear");
+        scanButton.getStyleClass().add("primary-button");
+
+        Button analyzeSelected = new Button("Abrir en análisis");
+        analyzeSelected.getStyleClass().add("secondary-button");
+
+        Button sendAuto = new Button("Enviar a Paper AUTO");
+        sendAuto.getStyleClass().add("secondary-button");
+
+        Label scanStatus = new Label("Listo para escanear.");
+        scanStatus.getStyleClass().add("scanner-status");
+
+        Label scoreHelp = new Label(
+                "Score: 0–100 según tendencia, fuerza, RSI, compatibilidad de estrategia, "
+                        + "señal actual, retorno histórico y volatilidad. No es una probabilidad."
+        );
+        scoreHelp.setWrapText(true);
+        scoreHelp.getStyleClass().add("scanner-score-help");
+
+        ListView<WatchlistItem> watchlist = new ListView<>();
+        watchlist.getStyleClass().add("scanner-watchlist");
+        watchlist.setPrefWidth(245);
+        watchlist.setMinWidth(220);
+        watchlist.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(
+                    WatchlistItem item,
+                    boolean empty
+            ) {
+                super.updateItem(item, empty);
+                setText(
+                        empty || item == null
+                                ? null
+                                : item.symbol()
+                                + " · "
+                                + item.timeframe()
+                                + " · "
+                                + item.source()
+                );
+            }
+        });
+
+        TableView<ScannerRow> table = createScannerTable();
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        Runnable configureMarketControls = () -> {
+            String market = scannerMarketType(
+                    marketFilter.getValue()
+            );
+
+            sourceFilter.getItems().clear();
+            timeframeFilter.getItems().clear();
+
+            if ("argentina".equals(market)) {
+                sourceFilter.getItems().add("open-bymadata");
+                sourceFilter.setValue("open-bymadata");
+                timeframeFilter.getItems().add("1d");
+                timeframeFilter.setValue("1d");
+            } else if ("crypto".equals(market)) {
+                sourceFilter.getItems().addAll(
+                        "binance",
+                        "kraken"
+                );
+                sourceFilter.setValue("binance");
+                timeframeFilter.getItems().addAll(
+                        "1h",
+                        "4h",
+                        "1d"
+                );
+                timeframeFilter.setValue("1h");
+            } else {
+                sourceFilter.getItems().add("yahoo");
+                sourceFilter.setValue("yahoo");
+                timeframeFilter.getItems().addAll(
+                        "1h",
+                        "4h",
+                        "1d"
+                );
+                timeframeFilter.setValue("1h");
+            }
+        };
+
+        Runnable refreshWatchlist = () -> {
+            String market = scannerMarketType(
+                    marketFilter.getValue()
+            );
+
+            watchlist.setItems(
+                    FXCollections.observableArrayList(
+                            watchlistService.itemsForMarket(market)
+                    )
+            );
+        };
+
+        marketFilter.setOnAction(e -> {
+            configureMarketControls.run();
+            refreshWatchlist.run();
+            table.getItems().clear();
+        });
+
+        configureMarketControls.run();
+        refreshWatchlist.run();
+
+        addButton.setOnAction(e -> {
+            String symbol = symbolField.getText() == null
+                    ? ""
+                    : symbolField.getText().trim().toUpperCase(Locale.ROOT);
+
+            if (symbol.isBlank()) {
+                showScannerError("Ingresá un ticker o símbolo.");
+                return;
+            }
+
+            String market = scannerMarketType(
+                    marketFilter.getValue()
+            );
+
+            if ("crypto".equals(market)
+                    && !symbol.contains("/")) {
+                if (symbol.endsWith("USDT")) {
+                    symbol = symbol.substring(
+                            0,
+                            symbol.length() - 4
+                    ) + "/USDT";
+                }
+            }
+
+            try {
+                watchlistService.add(
+                        new WatchlistItem(
+                                market,
+                                sourceFilter.getValue(),
+                                symbol,
+                                "argentina".equals(market)
+                                        ? "ARS"
+                                        : "USD",
+                                timeframeFilter.getValue(),
+                                periodFilter.getValue()
+                        )
+                );
+
+                symbolField.clear();
+                refreshWatchlist.run();
+            } catch (Exception ex) {
+                showScannerError(ex.getMessage());
+            }
+        });
+
+        removeButton.setOnAction(e -> {
+            WatchlistItem selected =
+                    watchlist.getSelectionModel().getSelectedItem();
+
+            if (selected == null) {
+                showScannerError(
+                        "Seleccioná un activo de la watchlist."
+                );
+                return;
+            }
+
+            try {
+                watchlistService.remove(selected);
+                refreshWatchlist.run();
+                table.getItems().removeIf(
+                        row -> row.result().item().key()
+                                .equalsIgnoreCase(selected.key())
+                );
+            } catch (Exception ex) {
+                showScannerError(ex.getMessage());
+            }
+        });
+
+        AtomicBoolean scanning = new AtomicBoolean(false);
+
+        Runnable scan = () -> {
+            if (!scanning.compareAndSet(false, true)) {
+                return;
+            }
+
+            List<WatchlistItem> items = new ArrayList<>(
+                    watchlist.getItems()
+            );
+
+            if (items.isEmpty()) {
+                scanning.set(false);
+                showScannerError(
+                        "La watchlist está vacía."
+                );
+                return;
+            }
+
+            scanButton.setDisable(true);
+            table.getItems().clear();
+            scanStatus.setText(
+                    "Escaneando 0/" + items.size() + "..."
+            );
+
+            Task<List<ScannerResult>> task = new Task<>() {
+                @Override
+                protected List<ScannerResult> call() {
+                    List<ScannerResult> results =
+                            new ArrayList<>();
+
+                    for (int i = 0; i < items.size(); i++) {
+                        WatchlistItem item = items.get(i);
+                        results.add(scannerEngine.scan(item));
+
+                        updateMessage(
+                                "Escaneando "
+                                        + (i + 1)
+                                        + "/"
+                                        + items.size()
+                                        + " · "
+                                        + item.symbol()
+                        );
+                    }
+
+                    results.sort(
+                            Comparator.comparingInt(
+                                    ScannerResult::score
+                            ).reversed()
+                    );
+
+                    return results;
+                }
+            };
+
+            scanStatus.textProperty().bind(
+                    task.messageProperty()
+            );
+
+            task.setOnSucceeded(e -> {
+                scanStatus.textProperty().unbind();
+
+                List<ScannerResult> results = task.getValue();
+
+                table.setItems(
+                        FXCollections.observableArrayList(
+                                results.stream()
+                                        .map(ScannerRow::new)
+                                        .toList()
+                        )
+                );
+
+                long errors = results.stream()
+                        .filter(result -> !result.successful())
+                        .count();
+
+                scanStatus.setText(
+                        "Escaneo finalizado · "
+                                + results.size()
+                                + " activos"
+                                + (
+                                errors > 0
+                                        ? " · " + errors + " con error"
+                                        : ""
+                        )
+                );
+
+                scanButton.setDisable(false);
+                scanning.set(false);
+            });
+
+            task.setOnFailed(e -> {
+                scanStatus.textProperty().unbind();
+                Throwable error = task.getException();
+
+                scanStatus.setText(
+                        "Error de scanner: "
+                                + (
+                                error == null
+                                        ? "desconocido"
+                                        : error.getMessage()
+                        )
+                );
+
+                scanButton.setDisable(false);
+                scanning.set(false);
+            });
+
+            Thread thread = new Thread(
+                    task,
+                    "market-scanner"
+            );
+            thread.setDaemon(true);
+            thread.start();
+        };
+
+        scanButton.setOnAction(e -> scan.run());
+
+        Runnable openSelected = () -> {
+            ScannerRow row =
+                    table.getSelectionModel().getSelectedItem();
+
+            if (row == null || !row.result().successful()) {
+                showScannerError(
+                        "Seleccioná un resultado válido."
+                );
+                return;
+            }
+
+            applyScannerResult(row.result());
+            window.close();
+        };
+
+        analyzeSelected.setOnAction(e -> openSelected.run());
+
+        table.setRowFactory(tv -> {
+            TableRow<ScannerRow> row = new TableRow<>();
+
+            row.setOnMouseClicked(e -> {
+                if (e.getClickCount() == 2
+                        && !row.isEmpty()) {
+                    table.getSelectionModel().select(
+                            row.getItem()
+                    );
+                    openSelected.run();
+                }
+            });
+
+            return row;
+        });
+
+        sendAuto.setOnAction(e -> {
+            ScannerRow row =
+                    table.getSelectionModel().getSelectedItem();
+
+            if (row == null || !row.result().successful()) {
+                showScannerError(
+                        "Seleccioná un resultado válido."
+                );
+                return;
+            }
+
+            ScannerResult result = row.result();
+
+            applyScannerResult(result);
+
+            try {
+                PaperAutoConfig previous =
+                        paperTradingService.autoConfig();
+
+                double maxCapital =
+                        "ARS".equalsIgnoreCase(
+                                result.item().currency()
+                        )
+                                ? 200_000.0
+                                : 2_000.0;
+
+                double risk = previous == null
+                        ? 1.0
+                        : previous.riskPct();
+                double stop = previous == null
+                        ? 2.0
+                        : previous.stopLossPct();
+                double take = previous == null
+                        ? 4.0
+                        : previous.takeProfitPct();
+
+                paperTradingService.setAutoConfig(
+                        new PaperAutoConfig(
+                                false,
+                                result.item().symbol(),
+                                result.item().marketType(),
+                                result.item().source(),
+                                result.item().currency(),
+                                result.item().timeframe(),
+                                result.item().period(),
+                                result.strategy().name(),
+                                maxCapital,
+                                risk,
+                                stop,
+                                take
+                        )
+                );
+
+                window.close();
+                showPaperTrading();
+            } catch (Exception ex) {
+                showScannerError(ex.getMessage());
+            }
+        });
+
+        FlowPane controls = new FlowPane(
+                8,
+                8,
+                labeledSelector("Mercado", marketFilter),
+                labeledSelector("Fuente", sourceFilter),
+                labeledSelector("Vela", timeframeFilter),
+                labeledSelector("Período", periodFilter),
+                labeledSelector("Nuevo activo", symbolField),
+                addButton,
+                removeButton,
+                scanButton
+        );
+        controls.setAlignment(Pos.CENTER_LEFT);
+        controls.getStyleClass().add("scanner-controls");
+
+        VBox left = new VBox(
+                8,
+                new Label("Watchlist"),
+                watchlist
+        );
+        left.getStyleClass().add("scanner-side");
+        VBox.setVgrow(watchlist, Priority.ALWAYS);
+
+        HBox resultActions = new HBox(
+                10,
+                analyzeSelected,
+                sendAuto
+        );
+        resultActions.setAlignment(Pos.CENTER_RIGHT);
+
+        VBox right = new VBox(
+                8,
+                scanStatus,
+                table,
+                scoreHelp,
+                resultActions
+        );
+        HBox.setHgrow(right, Priority.ALWAYS);
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        HBox body = new HBox(
+                12,
+                left,
+                right
+        );
+        VBox.setVgrow(body, Priority.ALWAYS);
+
+        VBox root = new VBox(
+                12,
+                title,
+                subtitle,
+                controls,
+                body
+        );
+        root.setPadding(new Insets(16));
+        root.getStyleClass().add("scanner-root");
+
+        Scene scene = new Scene(root, 1380, 760);
+        scene.getStylesheets().add(
+                IaTradexApp.class
+                        .getResource("/com/iatradex/theme.css")
+                        .toExternalForm()
+        );
+
+        window.setScene(scene);
+        window.setMinWidth(900);
+        window.setMinHeight(620);
+
+        try {
+            window.getIcons().add(
+                    new Image(
+                            IaTradexApp.class.getResourceAsStream(
+                                    "/com/iatradex/icon.png"
+                            )
+                    )
+            );
+        } catch (Exception ignored) {
+        }
+
+        window.show();
+    }
+
+    private TableView<ScannerRow> createScannerTable() {
+        TableView<ScannerRow> table = new TableView<>();
+        table.setColumnResizePolicy(
+                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
+        );
+        table.getStyleClass().add("scanner-table");
+
+        TableColumn<ScannerRow, String> symbol =
+                new TableColumn<>("Activo");
+        symbol.setCellValueFactory(v ->
+                v.getValue().symbolProperty()
+        );
+
+        TableColumn<ScannerRow, String> market =
+                new TableColumn<>("Mercado");
+        market.setCellValueFactory(v ->
+                v.getValue().marketProperty()
+        );
+
+        TableColumn<ScannerRow, String> regime =
+                new TableColumn<>("Régimen");
+        regime.setCellValueFactory(v ->
+                v.getValue().regimeProperty()
+        );
+
+        TableColumn<ScannerRow, String> volatility =
+                new TableColumn<>("Volatilidad");
+        volatility.setCellValueFactory(v ->
+                v.getValue().volatilityProperty()
+        );
+
+        TableColumn<ScannerRow, String> rsi =
+                new TableColumn<>("RSI");
+        rsi.setCellValueFactory(v ->
+                v.getValue().rsiProperty()
+        );
+
+        TableColumn<ScannerRow, String> strategy =
+                new TableColumn<>("Estrategia");
+        strategy.setCellValueFactory(v ->
+                v.getValue().strategyProperty()
+        );
+
+        TableColumn<ScannerRow, String> signal =
+                new TableColumn<>("Señal");
+        signal.setCellValueFactory(v ->
+                v.getValue().signalProperty()
+        );
+
+        TableColumn<ScannerRow, String> score =
+                new TableColumn<>("Score");
+        score.setCellValueFactory(v ->
+                v.getValue().scoreProperty()
+        );
+
+        TableColumn<ScannerRow, String> detail =
+                new TableColumn<>("Explicación");
+        detail.setCellValueFactory(v ->
+                v.getValue().detailProperty()
+        );
+
+        symbol.setPrefWidth(90);
+        market.setPrefWidth(100);
+        regime.setPrefWidth(90);
+        volatility.setPrefWidth(90);
+        rsi.setPrefWidth(70);
+        strategy.setPrefWidth(130);
+        signal.setPrefWidth(90);
+        score.setPrefWidth(70);
+        detail.setPrefWidth(470);
+
+        table.getColumns().addAll(
+                symbol,
+                market,
+                regime,
+                volatility,
+                rsi,
+                strategy,
+                signal,
+                score,
+                detail
+        );
+
+        return table;
+    }
+
+    private String scannerMarketType(String label) {
+        if ("Argentina".equals(label)) {
+            return "argentina";
+        }
+
+        if ("Criptomonedas".equals(label)) {
+            return "crypto";
+        }
+
+        return "stocks";
+    }
+
+    private void applyScannerResult(ScannerResult result) {
+        WatchlistItem item = result.item();
+
+        if ("argentina".equals(item.marketType())) {
+            marketBox.setValue("Argentina");
+        } else if ("crypto".equals(item.marketType())) {
+            marketBox.setValue("Criptomonedas");
+        } else {
+            marketBox.setValue("Internacional");
+        }
+
+        refreshMarketSelectors();
+
+        timeframeBox.setValue(item.timeframe());
+        periodBox.setValue(item.period());
+
+        if ("crypto".equals(item.marketType())) {
+            sourceBox.setValue(item.source());
+
+            if (!cryptoSymbolBox.getItems().contains(
+                    item.symbol()
+            )) {
+                cryptoSymbolBox.getItems().add(
+                        item.symbol()
+                );
+            }
+
+            cryptoSymbolBox.setValue(item.symbol());
+        } else {
+            selectedStockSymbol = item.symbol();
+            stockSearchField.setText(item.symbol());
+
+            updateSelectedAssetVisual(
+                    item.symbol(),
+                    "stocks".equals(item.marketType())
+                            ? "https://assets.parqet.com/logos/symbol/"
+                            + item.symbol()
+                            + "?format=png&size=80"
+                            : null
+            );
+        }
+
+        render(result.analysis());
+    }
+
+    private void showScannerError(String message) {
+        Alert alert = new Alert(
+                Alert.AlertType.ERROR,
+                message == null
+                        ? "Error de Scanner."
+                        : message,
+                ButtonType.OK
+        );
+        alert.setTitle("Scanner");
+        alert.setHeaderText(
+                "No se pudo completar la operación"
+        );
+        alert.showAndWait();
     }
 
 
@@ -2508,8 +3217,8 @@ public final class IaTradexApp extends Application {
     }
 
     private FlowPane createMetrics() {
-        FlowPane pane = new FlowPane(10, 10);
-        pane.setPrefWrapLength(1200);
+        FlowPane pane = new FlowPane(7, 7);
+        pane.setPrefWrapLength(1450);
         pane.setAlignment(Pos.TOP_LEFT);
         pane.getStyleClass().add("metrics-flow");
 
@@ -2694,12 +3403,21 @@ public final class IaTradexApp extends Application {
     }
 
     private VBox metricCard(String title, Label value) {
-        VBox box = new VBox(5, muted(title), value);
-        box.setPadding(new Insets(12));
+        Label caption = muted(title);
+
+        VBox box = new VBox(3, caption, value);
+        box.setPadding(new Insets(8, 10, 8, 10));
         box.getStyleClass().add("metric-card");
-        box.setMinWidth(150);
-        box.setPrefWidth(180);
-        box.setMaxWidth(Double.MAX_VALUE);
+
+        // Compacta la tarjeta, pero permite que crezca cuando
+        // el título o un número grande necesitan más espacio.
+        box.setMinWidth(102);
+        box.setPrefWidth(Region.USE_COMPUTED_SIZE);
+        box.setMaxWidth(Region.USE_COMPUTED_SIZE);
+
+        value.setMinWidth(Region.USE_PREF_SIZE);
+        caption.setMinWidth(Region.USE_PREF_SIZE);
+
         return box;
     }
 
