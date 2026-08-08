@@ -334,7 +334,7 @@ Paper Trading permite practicar operaciones sin usar dinero real.
 
 ### Cuentas simuladas
 
-IA-TradeX mantiene dos cuentas separadas:
+IA-TradeX mantiene dos cuentas separadas, seleccionables mediante los botones visibles **ARS / USD** en la parte superior de Paper Trading:
 
 - **ARS** para instrumentos del mercado argentino;
 - **USD** para instrumentos internacionales y criptomonedas.

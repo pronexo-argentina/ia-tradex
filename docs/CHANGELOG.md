@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.1
+
+- Corregido selector de cuenta de Paper Trading.
+- ARS y USD ahora son botones permanentes y visibles.
+- La cuenta activa se muestra explícitamente.
+- Acciones de Paper Trading separadas del selector de moneda.
+- Mejor comportamiento en ventanas angostas.
+
+
 
 ## 0.7.0
 

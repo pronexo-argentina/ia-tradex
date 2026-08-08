@@ -884,14 +884,43 @@ public final class IaTradexApp extends Application {
 
         VBox heading = new VBox(2, title, subtitle);
 
-        ComboBox<String> accountCurrency = new ComboBox<>();
-        accountCurrency.getItems().addAll("ARS", "USD");
-        accountCurrency.setValue(
-                currentAnalysis != null
-                        ? currentAnalysis.currency()
-                        : "ARS"
+        ToggleGroup currencyGroup = new ToggleGroup();
+
+        ToggleButton arsButton = new ToggleButton("ARS");
+        ToggleButton usdButton = new ToggleButton("USD");
+
+        arsButton.setToggleGroup(currencyGroup);
+        usdButton.setToggleGroup(currencyGroup);
+
+        arsButton.getStyleClass().add("paper-currency-toggle");
+        usdButton.getStyleClass().add("paper-currency-toggle");
+
+        HBox currencySelector = new HBox(
+                4,
+                arsButton,
+                usdButton
         );
-        fixedWidth(accountCurrency, 90);
+        currencySelector.getStyleClass().add("paper-currency-selector");
+
+        String initialCurrency = currentAnalysis != null
+                ? currentAnalysis.currency()
+                : "ARS";
+
+        if ("USD".equalsIgnoreCase(initialCurrency)) {
+            usdButton.setSelected(true);
+        } else {
+            arsButton.setSelected(true);
+        }
+
+        Label accountCurrencyLabel = new Label("Cuenta");
+        accountCurrencyLabel.getStyleClass().add("paper-account-caption");
+
+        VBox accountSelectorBox = new VBox(
+                5,
+                accountCurrencyLabel,
+                currencySelector
+        );
+        accountSelectorBox.setAlignment(Pos.CENTER_LEFT);
 
         Label initialCapital = new Label();
         Label cash = new Label();
@@ -899,6 +928,8 @@ public final class IaTradexApp extends Application {
         Label unrealized = new Label();
 
         FlowPane accountCards = new FlowPane(10, 10);
+        accountCards.setAlignment(Pos.CENTER_LEFT);
+        accountCards.setPrefWrapLength(900);
 
         TableView<PaperPositionRow> positions = createPaperPositionsTable();
         TableView<PaperHistoryRow> history = createPaperHistoryTable();
@@ -912,9 +943,19 @@ public final class IaTradexApp extends Application {
         Button configureCapital = new Button("Capital inicial");
         configureCapital.getStyleClass().add("secondary-button");
 
+        Label activeAccount = new Label();
+        activeAccount.getStyleClass().add("paper-active-account");
+
+        java.util.function.Supplier<String> selectedCurrency = () ->
+                usdButton.isSelected() ? "USD" : "ARS";
+
         Runnable refresh = () -> {
-            String currency = accountCurrency.getValue();
+            String currency = selectedCurrency.get();
             PaperAccount account = paperTradingService.account(currency);
+
+            activeAccount.setText(
+                    "Cuenta activa: " + currency
+            );
 
             initialCapital.setText(
                     paperMoney(account.initialCapital(), currency)
@@ -970,20 +1011,35 @@ public final class IaTradexApp extends Application {
             );
         };
 
-        accountCurrency.setOnAction(e -> refresh.run());
+        currencyGroup.selectedToggleProperty().addListener(
+                (obs, oldToggle, newToggle) -> {
+                    if (newToggle == null) {
+                        if ("USD".equalsIgnoreCase(selectedCurrency.get())) {
+                            usdButton.setSelected(true);
+                        } else {
+                            arsButton.setSelected(true);
+                        }
+                        return;
+                    }
+
+                    refresh.run();
+                }
+        );
 
         configureCapital.setOnAction(e -> {
+            String currency = selectedCurrency.get();
+
             TextInputDialog dialog = new TextInputDialog(
                     String.format(
                             "%.2f",
                             paperTradingService
-                                    .account(accountCurrency.getValue())
+                                    .account(currency)
                                     .initialCapital()
                     )
             );
             dialog.setTitle("Capital inicial");
             dialog.setHeaderText(
-                    "Cuenta simulada " + accountCurrency.getValue()
+                    "Cuenta simulada " + currency
             );
             dialog.setContentText("Capital:");
 
@@ -992,10 +1048,12 @@ public final class IaTradexApp extends Application {
                     double amount = Double.parseDouble(
                             value.trim().replace(",", ".")
                     );
+
                     paperTradingService.resetAccount(
-                            accountCurrency.getValue(),
+                            currency,
                             amount
                     );
+
                     refresh.run();
                 } catch (Exception ex) {
                     showPaperError(ex.getMessage());
@@ -1011,13 +1069,15 @@ public final class IaTradexApp extends Application {
                 return;
             }
 
-            if (!accountCurrency.getValue().equalsIgnoreCase(
-                    currentAnalysis.currency()
-            )) {
-                accountCurrency.setValue(currentAnalysis.currency());
-                refresh.run();
+            String analysisCurrency = currentAnalysis.currency();
+
+            if ("USD".equalsIgnoreCase(analysisCurrency)) {
+                usdButton.setSelected(true);
+            } else {
+                arsButton.setSelected(true);
             }
 
+            refresh.run();
             showBuyPaperTrade(refresh);
         });
 
@@ -1033,6 +1093,7 @@ public final class IaTradexApp extends Application {
             }
 
             PaperPosition position = row.position();
+
             double currentPrice = position.lastPrice() == null
                     ? position.entryPrice()
                     : position.lastPrice();
@@ -1056,11 +1117,13 @@ public final class IaTradexApp extends Application {
                     double exitPrice = Double.parseDouble(
                             value.trim().replace(",", ".")
                     );
+
                     paperTradingService.close(
                             position.id(),
                             exitPrice,
                             "Cierre manual"
                     );
+
                     refresh.run();
                 } catch (Exception ex) {
                     showPaperError(ex.getMessage());
@@ -1068,20 +1131,29 @@ public final class IaTradexApp extends Application {
             });
         });
 
-        Region actionSpacer = new Region();
-        HBox.setHgrow(actionSpacer, Priority.ALWAYS);
+        Region headerSpacer = new Region();
+        HBox.setHgrow(headerSpacer, Priority.ALWAYS);
 
-        HBox topActions = new HBox(
-                10,
+        HBox header = new HBox(
+                18,
                 heading,
-                actionSpacer,
-                new Label("Cuenta"),
-                accountCurrency,
+                headerSpacer,
+                accountSelectorBox
+        );
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.getStyleClass().add("paper-header");
+
+        HBox actionBar = new HBox(
+                10,
+                activeAccount,
+                new Region(),
                 configureCapital,
                 buyCurrent,
                 closeSelected
         );
-        topActions.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(actionBar.getChildren().get(1), Priority.ALWAYS);
+        actionBar.setAlignment(Pos.CENTER_LEFT);
+        actionBar.getStyleClass().add("paper-action-bar");
 
         Tab positionsTab = new Tab(
                 "Posiciones abiertas",
@@ -1113,11 +1185,13 @@ public final class IaTradexApp extends Application {
 
         VBox root = new VBox(
                 14,
-                topActions,
+                header,
                 accountCards,
+                actionBar,
                 tabs,
                 note
         );
+
         root.setPadding(new Insets(18));
         root.getStyleClass().add("paper-root");
 
@@ -1129,7 +1203,7 @@ public final class IaTradexApp extends Application {
         );
 
         window.setScene(scene);
-        window.setMinWidth(900);
+        window.setMinWidth(760);
         window.setMinHeight(560);
 
         try {

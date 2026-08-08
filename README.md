@@ -141,6 +141,38 @@ La volatilidad se compara contra el comportamiento histórico del mismo activo u
 - layout responsive;
 - aplicación macOS de doble clic.
 
+
+## Paper Trading
+
+IA-TradeX incluye una primera etapa de **Paper Trading manual**, sin dinero real.
+
+Características actuales:
+
+- cuentas simuladas independientes en **ARS** y **USD**;
+- capital inicial configurable;
+- saldo disponible;
+- equity;
+- P&L no realizado;
+- compra manual del activo analizado;
+- cierre manual de posiciones;
+- cantidad, precio de entrada y precio actual;
+- Stop Loss y Take Profit registrados;
+- estrategia/contexto elegido al abrir;
+- régimen de mercado registrado al abrir;
+- historial de operaciones cerradas;
+- persistencia local automática.
+
+Los datos se guardan en:
+
+```text
+~/.ia-tradex/paper-trading.json
+```
+
+El precio actual de una posición se actualiza cuando se vuelve a analizar ese activo en IA-TradeX.
+
+**Importante:** esta etapa no envía órdenes a brokers ni exchanges. Stop Loss y Take Profit se almacenan como parte de la simulación, pero todavía no se ejecutan automáticamente.
+
+
 ## Arquitectura
 
 ```text
@@ -207,10 +239,8 @@ El manual se mantiene durante el desarrollo para que la documentación final no 
 
 ## Próximas etapas
 
-- Paper Trading
-- cartera simulada persistente
-- posiciones abiertas/cerradas
-- P&L realizado y no realizado
+- ejecución automática de Paper Trading por estrategia
+- monitoreo automático de Stop Loss / Take Profit
 - WebSockets / datos en vivo
 - validación walk-forward
 - validación fuera de muestra

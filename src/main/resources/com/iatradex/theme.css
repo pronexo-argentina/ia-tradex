@@ -578,3 +578,56 @@
     -fx-border-radius: 6px;
     -fx-background-radius: 6px;
 }
+
+
+/* Paper Trading account selector */
+.paper-header {
+    -fx-background-color: #101923;
+    -fx-padding: 12px 14px;
+    -fx-background-radius: 8px;
+    -fx-border-color: #253443;
+    -fx-border-radius: 8px;
+}
+
+.paper-account-caption {
+    -fx-text-fill: #7f94a8;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+}
+
+.paper-currency-selector {
+    -fx-background-color: #0b1118;
+    -fx-padding: 3px;
+    -fx-background-radius: 7px;
+    -fx-border-color: #263646;
+    -fx-border-radius: 7px;
+}
+
+.paper-currency-toggle {
+    -fx-background-color: transparent;
+    -fx-text-fill: #8fa2b5;
+    -fx-font-weight: 900;
+    -fx-min-width: 58px;
+    -fx-padding: 8px 13px;
+    -fx-background-radius: 5px;
+    -fx-border-color: transparent;
+}
+
+.paper-currency-toggle:selected {
+    -fx-background-color: #0b7ddd;
+    -fx-text-fill: white;
+}
+
+.paper-active-account {
+    -fx-text-fill: #59d98e;
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+}
+
+.paper-action-bar {
+    -fx-background-color: #101923;
+    -fx-padding: 9px 12px;
+    -fx-background-radius: 7px;
+    -fx-border-color: #253443;
+    -fx-border-radius: 7px;
+}
