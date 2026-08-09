@@ -16,6 +16,9 @@ public final class ScannerRow {
     private final StringProperty strategy;
     private final StringProperty signal;
     private final StringProperty score;
+    private final StringProperty ml;
+    private final StringProperty mlProbability;
+    private final StringProperty finalDecision;
     private final StringProperty detail;
 
     public ScannerRow(ScannerResult result) {
@@ -41,9 +44,29 @@ public final class ScannerRow {
                         ? String.valueOf(result.score())
                         : "—"
         );
+        ml = new SimpleStringProperty(
+                result.mlDecision() == null
+                        ? "—"
+                        : result.mlDecision()
+        );
+        mlProbability = new SimpleStringProperty(
+                result.mlProbabilityPct() == null
+                        ? "—"
+                        : String.format(
+                                "%.1f%%",
+                                result.mlProbabilityPct()
+                        )
+        );
+        finalDecision = new SimpleStringProperty(
+                result.finalDecision() == null
+                        ? result.signal()
+                        : result.finalDecision()
+        );
         detail = new SimpleStringProperty(
                 result.successful()
                         ? result.scoreExplanation()
+                        + " · "
+                        + result.mlExplanation()
                         : result.error()
         );
     }
@@ -58,5 +81,8 @@ public final class ScannerRow {
     public StringProperty strategyProperty() { return strategy; }
     public StringProperty signalProperty() { return signal; }
     public StringProperty scoreProperty() { return score; }
+    public StringProperty mlProperty() { return ml; }
+    public StringProperty mlProbabilityProperty() { return mlProbability; }
+    public StringProperty finalDecisionProperty() { return finalDecision; }
     public StringProperty detailProperty() { return detail; }
 }

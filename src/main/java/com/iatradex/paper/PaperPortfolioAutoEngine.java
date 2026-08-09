@@ -2,6 +2,7 @@ package com.iatradex.paper;
 
 import com.iatradex.analysis.StrategySignalEngine;
 import com.iatradex.market.MarketService;
+import com.iatradex.ml.MlFilterMode;
 import com.iatradex.model.AnalysisResult;
 import com.iatradex.model.Candle;
 import com.iatradex.model.StrategyType;
@@ -65,7 +66,10 @@ public final class PaperPortfolioAutoEngine {
         int errors = 0;
 
         for (WatchlistItem item : items) {
-            ScannerResult result = scannerEngine.scan(item);
+            ScannerResult result = scannerEngine.scan(
+                    item,
+                    config.mlMode()
+            );
             scanned.add(result);
 
             if (!result.successful()) {
@@ -109,6 +113,22 @@ public final class PaperPortfolioAutoEngine {
                         candidate,
                         "SCORE BAJO"
                 ));
+                continue;
+            }
+
+            if (config.mlMode() == MlFilterMode.CONFIRMATION
+                    && !candidate.mlConfirmsEntry()) {
+                skipped++;
+                ranking.add(toCandidate(
+                        candidate,
+                        "BLOQUEADA ML"
+                ));
+                messages.add(
+                        candidate.item().symbol()
+                                + " · omitido: ML no confirmó la entrada ("
+                                + candidate.mlDecision()
+                                + ")."
+                );
                 continue;
             }
 
@@ -290,10 +310,25 @@ public final class PaperPortfolioAutoEngine {
 
             entries++;
 
+            String mlText = "";
+
+            if (config.mlMode() != MlFilterMode.DISABLED) {
+                mlText = " · ML " + candidate.mlDecision();
+
+                if (candidate.mlProbabilityPct() != null) {
+                    mlText += " "
+                            + String.format(
+                                    "%.1f%%",
+                                    candidate.mlProbabilityPct()
+                            );
+                }
+            }
+
             String message =
                     item.symbol()
                             + " · BUY · score "
                             + candidate.score()
+                            + mlText
                             + " · "
                             + strategyName
                             + " · qty "
@@ -563,6 +598,8 @@ public final class PaperPortfolioAutoEngine {
                 candidate.signal(),
                 strategy,
                 candidate.regime(),
+                candidate.mlDecision(),
+                candidate.mlProbabilityPct(),
                 decision
         );
     }

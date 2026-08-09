@@ -2,6 +2,9 @@ package com.iatradex.scanner;
 
 import com.iatradex.analysis.AnalysisService;
 import com.iatradex.analysis.StrategySignalEngine;
+import com.iatradex.ml.MlEngine;
+import com.iatradex.ml.MlFilterMode;
+import com.iatradex.ml.MlReport;
 import com.iatradex.model.AnalysisResult;
 import com.iatradex.model.Candle;
 import com.iatradex.model.MarketRegime;
@@ -18,12 +21,24 @@ public final class ScannerEngine {
     private final AnalysisService analysisService;
     private final StrategySignalEngine signals =
             new StrategySignalEngine();
+    private final MlEngine mlEngine = new MlEngine();
 
     public ScannerEngine(AnalysisService analysisService) {
         this.analysisService = analysisService;
     }
 
     public ScannerResult scan(WatchlistItem item) {
+        return scan(item, MlFilterMode.DISABLED);
+    }
+
+    public ScannerResult scan(
+            WatchlistItem item,
+            MlFilterMode mlMode
+    ) {
+        MlFilterMode effectiveMode = mlMode == null
+                ? MlFilterMode.DISABLED
+                : mlMode;
+
         try {
             AnalysisResult analysis = analysisService.analyze(
                     item.marketType(),
@@ -34,29 +49,125 @@ public final class ScannerEngine {
                     item.currency()
             );
 
-            return score(item, analysis);
+            ScannerResult technical =
+                    score(item, analysis, effectiveMode);
+
+            if (effectiveMode == MlFilterMode.DISABLED) {
+                return technical;
+            }
+
+            return applyMl(
+                    technical,
+                    effectiveMode
+            );
         } catch (Exception ex) {
-            return new ScannerResult(
+            return errorResult(
                     item,
+                    effectiveMode,
+                    ex
+            );
+        }
+    }
+
+    private ScannerResult applyMl(
+            ScannerResult technical,
+            MlFilterMode mode
+    ) {
+        try {
+            MlReport report =
+                    mlEngine.trainAndEvaluate(
+                            technical.analysis()
+                    );
+
+            String finalDecision =
+                    technical.signal();
+
+            if (mode == MlFilterMode.CONFIRMATION
+                    && "ENTRADA".equals(technical.signal())
+                    && !"FAVORABLE".equals(report.decision())) {
+                finalDecision = "BLOQUEADA ML";
+            }
+
+            String explanation =
+                    "ML "
+                            + report.decision()
+                            + " · "
+                            + String.format(
+                                    "%.1f%%",
+                                    report.currentProbabilityPct()
+                            )
+                            + " · Balanced Acc. "
+                            + String.format(
+                                    "%.1f%%",
+                                    report.balancedAccuracyPct()
+                            )
+                            + " · Brier "
+                            + String.format(
+                                    "%.4f",
+                                    report.brierScore()
+                            )
+                            + " vs baseline "
+                            + String.format(
+                                    "%.4f",
+                                    report.baselineBrierScore()
+                            );
+
+            return new ScannerResult(
+                    technical.item(),
+                    technical.analysis(),
+                    technical.regime(),
+                    technical.volatility(),
+                    technical.rsi(),
+                    technical.trend(),
+                    technical.strategy(),
+                    technical.signal(),
+                    technical.score(),
+                    technical.scoreExplanation(),
+                    mode,
+                    report.decision(),
+                    report.currentProbabilityPct(),
+                    finalDecision,
+                    explanation,
+                    null
+            );
+        } catch (Exception ex) {
+            String mlError = ex.getMessage() == null
+                    ? ex.getClass().getSimpleName()
+                    : ex.getMessage();
+
+            String finalDecision =
+                    technical.signal();
+
+            if (mode == MlFilterMode.CONFIRMATION
+                    && "ENTRADA".equals(technical.signal())) {
+                finalDecision = "BLOQUEADA ML";
+            }
+
+            return new ScannerResult(
+                    technical.item(),
+                    technical.analysis(),
+                    technical.regime(),
+                    technical.volatility(),
+                    technical.rsi(),
+                    technical.trend(),
+                    technical.strategy(),
+                    technical.signal(),
+                    technical.score(),
+                    technical.scoreExplanation(),
+                    mode,
+                    "NO DISPONIBLE",
                     null,
-                    "—",
-                    "—",
-                    null,
-                    "—",
-                    StrategyType.EMA_CROSS,
-                    "ERROR",
-                    0,
-                    "No se pudo analizar el activo.",
-                    ex.getMessage() == null
-                            ? ex.getClass().getSimpleName()
-                            : ex.getMessage()
+                    finalDecision,
+                    "ML no disponible: " + mlError,
+                    null
             );
         }
     }
 
     private ScannerResult score(
             WatchlistItem item,
-            AnalysisResult analysis
+            AnalysisResult analysis,
+            MlFilterMode mode
     ) {
         TechnicalSnapshot technical = analysis.technical();
         MarketRegime regime = analysis.regime();
@@ -183,7 +294,45 @@ public final class ScannerEngine {
                 signal,
                 score,
                 String.join(" · ", why),
+                mode,
+                mode == MlFilterMode.DISABLED
+                        ? "OFF"
+                        : "PENDIENTE",
+                null,
+                signal,
+                mode == MlFilterMode.DISABLED
+                        ? "ML desactivado."
+                        : "ML pendiente.",
                 null
+        );
+    }
+
+    private ScannerResult errorResult(
+            WatchlistItem item,
+            MlFilterMode mode,
+            Exception ex
+    ) {
+        return new ScannerResult(
+                item,
+                null,
+                "—",
+                "—",
+                null,
+                "—",
+                StrategyType.EMA_CROSS,
+                "ERROR",
+                0,
+                "No se pudo analizar el activo.",
+                mode,
+                mode == MlFilterMode.DISABLED
+                        ? "OFF"
+                        : "NO DISPONIBLE",
+                null,
+                "ERROR",
+                "ML no evaluado.",
+                ex.getMessage() == null
+                        ? ex.getClass().getSimpleName()
+                        : ex.getMessage()
         );
     }
 

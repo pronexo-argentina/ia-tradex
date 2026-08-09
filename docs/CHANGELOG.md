@@ -1,5 +1,163 @@
 # Changelog
 
+## 2.2.3
+
+### Interfaz · Llama Violeta
+
+- Nueva evolución del tema violeta.
+- Fondo principal casi negro-violeta.
+- Paneles púrpura profundo.
+- Acentos violeta eléctrico y magenta-violeta.
+- Textos y gráficos destacados en lavanda luminosa.
+- Mayor contraste visual entre superficies y acciones.
+- Se mantienen verde, amarillo y rojo para estados operativos.
+- Sin cambios en lógica de trading, ML, Scanner, Validación o Paper Trading.
+
+### Documentación y versión
+
+- README actualizado.
+- Manual actualizado.
+- Changelog actualizado.
+- Maven actualizado a 2.2.3.
+- Packaging macOS actualizado a `ia-tradex-2.2.3.jar`.
+
+
+## 2.2.2
+
+### Interfaz
+
+- Refinamiento del tema violeta oscuro según la referencia visual elegida.
+- Fondo principal más púrpura y profundo.
+- Paneles en violeta oscuro saturado.
+- Acentos principales en violeta eléctrico.
+- Gráficos y enlaces en lavanda/azul frío.
+- Se mantienen verde, amarillo y rojo para estados operativos.
+- Sin cambios en lógica funcional.
+
+### Documentación y versión
+
+- README actualizado.
+- Manual actualizado.
+- Changelog actualizado.
+- Maven y packaging macOS actualizados a 2.2.2.
+
+
+## 2.2.1
+
+### Interfaz
+
+- Nueva identidad visual violeta oscuro.
+- Fondo principal y ventanas movidos de azul/gris oscuro a violeta casi negro.
+- Paneles, tablas, selectores y menús en violetas profundos.
+- Botón primario y selecciones en violeta.
+- Gráficos y acentos principales en lavanda/violeta.
+- Se mantienen colores semánticos verde, amarillo y rojo.
+- No se modificó lógica de trading, Scanner, ML, Validación, Paper Trading ni Cartera AUTO.
+
+### Documentación y versión
+
+- README actualizado.
+- Manual actualizado.
+- Changelog actualizado.
+- Maven actualizado a 2.2.1.
+- Packaging macOS actualizado a `ia-tradex-2.2.1.jar`.
+
+
+## 2.2.0
+
+### Memoria persistente de decisiones ML
+
+- Nuevo registro persistente de decisiones ML.
+- Deduplicación por mercado/fuente/activo/timeframe/timestamp.
+- Cada decisión conserva cierre de referencia, probabilidad, decisión, métricas OOS, horizonte y umbral.
+- Estado `PENDING` hasta disponer de cinco velas posteriores.
+- Resolución automática a `RESOLVED`.
+- Cálculo del retorno futuro real a cinco velas.
+- Cálculo de la etiqueta real `POSITIVA / NO POSITIVA`.
+- Evaluación de acierto para `FAVORABLE` y `NO OPERAR`.
+- `OBSERVAR` se conserva pero no computa como predicción accionable.
+
+### Dashboard Memoria ML
+
+- Nuevo botón `Memoria ML` dentro de IA / ML.
+- Total de decisiones.
+- Pendientes y resueltas.
+- Acierto accionable.
+- Acierto FAVORABLE.
+- Acierto NO OPERAR.
+- Retorno medio observado a cinco velas.
+- Tabla completa de decisiones.
+
+### Resolución y persistencia
+
+- Resolución al analizar nuevamente un activo.
+- Resolución indirecta mediante Scanner/Cartera AUTO cuando ejecutan ML.
+- Soporte para históricos de ventana móvil buscando velas posteriores al timestamp original.
+- Persistencia en `~/.ia-tradex/ml-decisions.json`.
+- Backup `.bak`.
+- Escritura temporal y reemplazo atómico.
+- Límite de 2000 decisiones para controlar tamaño.
+
+### Exportación
+
+- Exportación completa de Memoria ML a CSV.
+
+### Compatibilidad y alcance
+
+- No modifica la definición de etiqueta de v2.0: cinco velas y +0,5%.
+- No convierte tasa de acierto en rentabilidad.
+- No modifica Stop/Take ni reglas de salida.
+- No envía órdenes reales.
+
+### Documentación
+
+- README actualizado.
+- Manual actualizado.
+- Changelog actualizado.
+- Arquitectura y QA actualizados.
+- Maven y packaging macOS actualizados a 2.2.0.
+
+
+## 2.1.0
+
+### Scanner + ML
+
+- Nuevo selector ML en Scanner.
+- Modos `Desactivado`, `Informativo` y `Confirmación`.
+- El Score técnico permanece separado de la probabilidad ML.
+- Nuevas columnas `ML`, `ML %` y `Decisión`.
+- ML Informativo no bloquea señales técnicas.
+- ML Confirmación bloquea una `ENTRADA` si el modelo no devuelve `FAVORABLE`.
+- Si ML no puede evaluarse por falta de muestras, Confirmación bloquea de forma conservadora.
+- La explicación del Scanner combina detalle técnico y detalle ML.
+- El modelo reutiliza el `AnalysisResult` ya descargado; no vuelve a pedir datos de mercado para entrenar.
+
+### Cartera AUTO + ML
+
+- Nuevo Filtro ML persistente en la configuración de Cartera AUTO.
+- Modos Desactivado / Informativo / Confirmación.
+- Confirmación exige ML `FAVORABLE` antes de abrir una posición simulada.
+- El ranking persistente guarda decisión ML y probabilidad.
+- El log de compra incorpora ML cuando está activo.
+- Stop/Take, riesgo, límites y salidas técnicas conservan su lógica anterior.
+- ML se utiliza solamente como filtro de entrada.
+
+### Compatibilidad
+
+- Configuraciones persistidas de v2.0 o anteriores sin `mlMode` migran a `Desactivado`.
+- Rankings anteriores siguen siendo legibles con campos ML opcionales.
+- Scanner tradicional sigue disponible sin coste ML usando Desactivado.
+
+### Documentación y versión
+
+- README actualizado.
+- Manual actualizado.
+- Changelog actualizado.
+- Arquitectura y QA actualizados.
+- Maven actualizado a 2.1.0.
+- Packaging macOS actualizado a `ia-tradex-2.1.0.jar`.
+
+
 ## 2.0.0
 
 ### Machine Learning

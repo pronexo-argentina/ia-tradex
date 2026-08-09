@@ -1,4 +1,4 @@
-# QA de IA-TradeX v2.0.0
+# QA de IA-TradeX v2.2.0
 
 Checklist recomendado antes de publicar una release.
 
@@ -107,3 +107,47 @@ Comprobar:
 - repetir con un período corto y confirmar mensaje de historial insuficiente;
 - verificar que entrenar ML no abra posiciones de Paper Trading;
 - verificar que Cartera AUTO y Scanner sigan funcionando sin depender del modelo.
+
+
+## Scanner + ML v2.1
+
+- ejecutar Scanner con ML Desactivado;
+- confirmar columnas ML en estado OFF;
+- ejecutar Scanner con ML Informativo;
+- verificar ML / ML % sin alterar una ENTRADA técnica;
+- ejecutar Scanner con ML Confirmación;
+- verificar `BLOQUEADA ML` cuando no sea FAVORABLE;
+- probar un período corto sin muestras suficientes;
+- confirmar `NO DISPONIBLE` y bloqueo conservador en Confirmación;
+- verificar que un error ML no convierta en error el análisis técnico del activo.
+
+## Cartera AUTO + ML v2.1
+
+- guardar cada uno de los tres modos ML;
+- cerrar/reabrir la aplicación y comprobar persistencia;
+- ejecutar con Desactivado y comparar comportamiento anterior;
+- ejecutar con Informativo y revisar ranking/log;
+- ejecutar con Confirmación;
+- verificar que ML no favorable impida BUY;
+- verificar que ML favorable siga pasando por Score, límites, efectivo y riesgo;
+- comprobar que Stop Loss, Take Profit y salidas por estrategia siguen funcionando;
+- revisar compatibilidad de `paper-trading.json` creado por versiones anteriores.
+
+
+## Memoria ML v2.2
+
+- entrenar IA / ML sobre un activo;
+- abrir Memoria ML y verificar una sola decisión PENDING;
+- volver a entrenar sobre la misma vela y confirmar que no duplica;
+- comprobar `~/.ia-tradex/ml-decisions.json`;
+- provocar una segunda escritura y comprobar `.bak`;
+- cuando existan cinco velas cerradas posteriores, volver a analizar el mismo activo;
+- comprobar cambio PENDING → RESOLVED;
+- validar retorno a cinco velas;
+- validar etiqueta POSITIVA / NO POSITIVA;
+- confirmar acierto para FAVORABLE y NO OPERAR;
+- confirmar que OBSERVAR queda con acierto `—`;
+- verificar métricas agregadas;
+- exportar memoria CSV;
+- comprobar que una vela todavía abierta nunca resuelve una decisión;
+- probar resolución con período móvil donde la vela original ya no esté incluida.

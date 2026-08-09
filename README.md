@@ -2,14 +2,14 @@
 
 **IA-TradeX** es una aplicación de escritorio 100% Java para análisis técnico, backtesting, Scanner, Paper Trading y gestión automatizada de una cartera simulada.
 
-La v2.0.0 agrega una primera capa de Machine Learning 100% Java sobre la base validada de la v1.4. No envía órdenes reales y no requiere Python.
+La v2.2.3 refina la identidad visual hacia una estética inspirada en la Llama Violeta: violeta profundo, índigo, púrpura eléctrico, magenta-violeta y lavanda luminosa. No envía órdenes reales y no requiere Python.
 
 ![Java](https://img.shields.io/badge/Java-21-blue)
 ![JavaFX](https://img.shields.io/badge/JavaFX-23-blue)
 ![License](https://img.shields.io/badge/License-AGPL--3.0-green)
-![Version](https://img.shields.io/badge/version-2.0.0-brightgreen)
+![Version](https://img.shields.io/badge/version-2.2.3-brightgreen)
 
-## Qué incluye IA-TradeX 2.0.0
+## Qué incluye IA-TradeX 2.2.3
 
 - análisis de **Criptomonedas, Argentina e Internacional**;
 - Binance y Kraken para Crypto;
@@ -23,6 +23,12 @@ La v2.0.0 agrega una primera capa de Machine Learning 100% Java sobre la base va
 - Watchlists persistentes;
 - Scanner manual y automático;
 - Score técnico explicable de 0 a 100;
+- ML separado del Score técnico;
+- ML informativo o como confirmación en Scanner;
+- filtro ML persistente y opcional en Cartera AUTO;
+- memoria persistente de decisiones ML;
+- verificación automática a 5 velas;
+- estadísticas de acierto FAVORABLE / NO OPERAR;
 - Paper Trading manual con cuentas ARS y USD;
 - Stop Loss y Take Profit automáticos;
 - AUTO por activo;
@@ -337,6 +343,9 @@ Más detalle en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - [Notas de release 1.0.0](docs/RELEASE_1.0.0.md)
 - [Notas de release 1.4.0](docs/RELEASE_1.4.0.md)
 - [Notas de release 2.0.0](docs/RELEASE_2.0.0.md)
+- [Notas de release 2.1.0](docs/RELEASE_2.1.0.md)
+- [Notas de release 2.2.0](docs/RELEASE_2.2.0.md)
+- [Notas de release 2.2.1](docs/RELEASE_2.2.1.md)
 - [Changelog](docs/CHANGELOG.md)
 
 
@@ -498,34 +507,198 @@ IA-TradeX muestra los pesos estandarizados de las variables y una importancia re
 
 Esto permite inspeccionar qué variables están influyendo más en la clasificación.
 
-### Uso en v2.0
+### Uso desde v2.1
 
-La capa ML es **informativa y de investigación**. No modifica automáticamente las reglas de Paper Trading, Cartera AUTO ni Scanner.
+La pantalla **IA / ML** continúa siendo la vista detallada del modelo. Desde v2.1 el mismo modelo puede utilizarse como información o como confirmación opcional dentro del Scanner y Cartera AUTO.
 
-La integración del ML como filtro de ejecución debería hacerse solamente después de acumular evidencia suficiente de calidad OOS.
+El ML nunca reemplaza los límites de riesgo y no se utiliza para enviar órdenes reales.
 
 ### Exportación
 
 El reporte ML puede exportarse a CSV con métricas, decisión y variables del modelo.
 
 
+
+## Integración ML · v2.1
+
+IA-TradeX mantiene separados dos conceptos:
+
+```text
+Score técnico ≠ probabilidad ML
+```
+
+El **Score técnico** continúa siendo el ranking explicable basado en reglas. La columna **ML %** muestra la probabilidad interna producida por el modelo de la v2.0.
+
+### Modos del Scanner
+
+El Scanner permite elegir:
+
+- **Desactivado:** no entrena ML durante el escaneo.
+- **Informativo:** calcula ML y lo muestra, pero la señal técnica no se bloquea.
+- **Confirmación:** una señal técnica `ENTRADA` solo queda habilitada si ML devuelve `FAVORABLE`.
+
+En modo Confirmación puede aparecer:
+
+```text
+Señal técnica: ENTRADA
+ML: OBSERVAR
+Decisión: BLOQUEADA ML
+```
+
+El Scanner muestra por separado:
+
+- Señal;
+- Score;
+- ML;
+- ML %;
+- Decisión final;
+- explicación técnica + explicación ML.
+
+### Cartera AUTO + ML
+
+Cartera AUTO guarda un **Filtro ML** persistente con los mismos tres modos.
+
+En **Confirmación** deben cumplirse las condiciones tradicionales de Cartera AUTO y, además:
+
+```text
+ML = FAVORABLE
+```
+
+Si el modelo no puede evaluarse por falta de muestras, la entrada se bloquea de forma conservadora.
+
+En **Informativo**, el resultado ML aparece en el ranking y en el log, pero no impide la operación simulada.
+
+En **Desactivado**, Cartera AUTO conserva el comportamiento anterior.
+
+### Alcance de seguridad
+
+La integración ML se aplica únicamente a **Paper Trading**. IA-TradeX 2.1 no envía órdenes reales.
+
+El filtro ML se utiliza para entradas; las salidas por estrategia, Stop Loss y Take Profit conservan su lógica existente.
+
+
+
+## Memoria ML · v2.2
+
+Cada vez que IA-TradeX obtiene una decisión ML válida, registra una observación única para:
+
+```text
+mercado + fuente + activo + timeframe + vela de decisión
+```
+
+El registro guarda:
+
+- activo y mercado;
+- timeframe y período;
+- cierre de referencia;
+- probabilidad ML;
+- decisión `FAVORABLE / OBSERVAR / NO OPERAR`;
+- Balanced Accuracy OOS;
+- Brier Score;
+- Baseline Brier;
+- horizonte y umbral de la etiqueta.
+
+### Estados
+
+Una observación comienza como:
+
+```text
+PENDING
+```
+
+Cuando existen cinco velas posteriores pasa a:
+
+```text
+RESOLVED
+```
+
+IA-TradeX compara entonces:
+
+```text
+retorno futuro a 5 velas > +0,5%
+```
+
+con la decisión que había producido el modelo.
+
+### Qué significa "acertó"
+
+Para **FAVORABLE**, se considera acierto cuando la etiqueta positiva realmente ocurrió.
+
+Para **NO OPERAR**, se considera acierto cuando la etiqueta positiva no ocurrió.
+
+**OBSERVAR** se resuelve y conserva para auditoría, pero no participa en la tasa de aciertos accionables.
+
+Esto mide la capacidad de clasificación de la etiqueta ML. No equivale directamente a rentabilidad de una operación con Stop/Take.
+
+### Panel Memoria ML
+
+Dentro de **IA / ML → Memoria ML** se muestran:
+
+- decisiones totales;
+- pendientes;
+- decisiones resueltas;
+- tasa de acierto accionable;
+- acierto de FAVORABLE;
+- acierto de NO OPERAR;
+- retorno medio observado a 5 velas;
+- historial detallado.
+
+### Persistencia
+
+La memoria se guarda en:
+
+```text
+~/.ia-tradex/ml-decisions.json
+~/.ia-tradex/ml-decisions.json.bak
+```
+
+La escritura usa temporal y reemplazo atómico cuando el sistema lo permite.
+
+### Resolución automática
+
+Las decisiones pendientes se intentan resolver cuando:
+
+- volvés a analizar el mismo activo/timeframe;
+- el Scanner vuelve a evaluar ese activo con ML;
+- Cartera AUTO vuelve a escanearlo con ML.
+
+También se soporta histórico en ventana móvil: si la vela original ya no está en la respuesta, IA-TradeX busca las velas posteriores al timestamp de decisión.
+
+### Exportación
+
+**Memoria ML** puede exportarse completa a CSV.
+
+
+
+## Tema visual · v2.2.1
+
+La interfaz adopta una paleta **violeta oscuro**:
+
+- fondo principal casi negro con matiz violeta;
+- paneles y tablas en violetas profundos;
+- bordes violetas discretos;
+- acción principal en violeta intenso;
+- selección y gráficos con acentos lavanda/violeta;
+- colores semánticos verde, amarillo y rojo conservados para estados, alertas y resultados.
+
+La modificación es exclusivamente visual: no cambia Scanner, ML, Validación, Paper Trading, Cartera AUTO ni Memoria ML.
+
 ## Próximas etapas
 
-La v2.0.0 incorpora el primer modelo ML, pero lo mantiene desacoplado de la ejecución automática.
+La v2.2.0 ya permite medir el comportamiento del modelo con observaciones reales acumuladas en el tiempo.
 
 Siguientes candidatos:
 
-- validación cruzada del modelo en múltiples activos;
-- calibración probabilística;
-- comparación contra modelos más simples y árboles;
+- métricas ML por activo, mercado, timeframe y régimen;
+- calibración de probabilidades usando la memoria acumulada;
+- comparar ML contra la decisión técnica que habría tomado el Scanner;
+- registrar impacto del filtro ML sobre Paper Trading;
+- validación cruzada multi-activo;
+- modelos alternativos y ensembles;
 - persistencia/versionado de modelos;
-- ML como filtro opcional del Scanner;
-- ML como filtro opcional de Cartera AUTO, inicialmente solo en Paper Trading;
 - Monte Carlo / bootstrap;
 - WebSocket/streaming donde la fuente lo permita;
-- sentimiento/noticias;
-- explicabilidad avanzada;
-- integración opcional con brokers en una etapa posterior.
+- integración con brokers solamente en una etapa posterior.
 
 ## Acerca de
 
@@ -538,3 +711,40 @@ Siguientes candidatos:
 IA-TradeX se distribuye bajo **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 
 Consulta [LICENSE](LICENSE) para el texto completo.
+
+## Paleta de referencia · v2.2.2
+
+La interfaz se ajustó a una referencia visual púrpura más saturada y azulada.
+
+Colores guía aproximados:
+
+```text
+Fondo profundo: #190638
+Panel oscuro:   #2E0B49
+Violeta medio:  #45136D
+Acento:         #7046D3
+Lavanda:        #9B8BEA
+Luz fría:       #A3BCE8
+```
+
+Los colores operativos verde, amarillo y rojo se conservan para no perder significado visual.
+
+## Tema Llama Violeta · v2.2.3
+
+La interfaz adopta una paleta inspirada en la idea visual de la **Llama Violeta**: transformación, energía y luminosidad sobre una base oscura.
+
+Paleta guía aproximada:
+
+```text
+Fondo profundo:   #120022
+Panel principal:  #24003F
+Violeta base:     #47006F
+Violeta intenso:  #8F3CFF
+Magenta-violeta:  #A24CFF
+Lavanda luminosa: #C08CFF
+Luz fría:         #D0C6FF
+```
+
+La intención es mantener una estética tecnológica y sobria, usando los tonos más luminosos solo como acentos.
+
+Los colores operativos verde, amarillo y rojo siguen reservados para estados funcionales.

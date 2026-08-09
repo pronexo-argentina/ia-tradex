@@ -5,7 +5,7 @@
 
     <groupId>com.iatradex</groupId>
     <artifactId>ia-tradex</artifactId>
-    <version>2.0.0</version>
+    <version>2.2.3</version>
     <name>IA-TradeX</name>
     <description>Plataforma de análisis y backtesting 100% Java.</description>
 

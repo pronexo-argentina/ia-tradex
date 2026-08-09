@@ -32,6 +32,12 @@ public final class MlEngine {
 
     private final IndicatorEngine indicators =
             new IndicatorEngine();
+    private final MlDecisionService decisionService =
+            new MlDecisionService();
+
+    public MlDecisionService decisionService() {
+        return decisionService;
+    }
 
     public MlReport trainAndEvaluate(
             AnalysisResult analysis
@@ -132,7 +138,9 @@ public final class MlEngine {
                         decision
                 );
 
-        return new MlReport(
+        Candle decisionCandle = candles.get(currentIndex);
+
+        MlReport report = new MlReport(
                 analysis.symbol(),
                 analysis.timeframe(),
                 analysis.period(),
@@ -140,6 +148,8 @@ public final class MlEngine {
                 train.size(),
                 test.size(),
                 HORIZON,
+                decisionCandle.timestamp(),
+                decisionCandle.close(),
                 LABEL_THRESHOLD * 100.0,
                 probability * 100.0,
                 decision,
@@ -154,6 +164,13 @@ public final class MlEngine {
                 explanation,
                 Instant.now().toString()
         );
+
+        decisionService.observe(
+                analysis,
+                report
+        );
+
+        return report;
     }
 
     public void exportCsv(
@@ -171,6 +188,8 @@ public final class MlEngine {
         appendMetric(out, "training_samples", report.trainingSamples());
         appendMetric(out, "test_samples", report.testSamples());
         appendMetric(out, "horizon_bars", report.horizonBars());
+        appendMetric(out, "decision_timestamp", report.decisionTimestamp());
+        appendMetric(out, "reference_close", report.referenceClose());
         appendMetric(out, "positive_label_threshold_pct", report.positiveLabelThresholdPct());
         appendMetric(out, "current_probability_pct", report.currentProbabilityPct());
         appendMetric(out, "decision", report.decision());

@@ -10,6 +10,8 @@ public record MlReport(
         int trainingSamples,
         int testSamples,
         int horizonBars,
+        long decisionTimestamp,
+        double referenceClose,
         double positiveLabelThresholdPct,
         double currentProbabilityPct,
         String decision,

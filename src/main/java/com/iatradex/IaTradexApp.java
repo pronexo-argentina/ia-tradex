@@ -30,6 +30,9 @@ import com.iatradex.validation.OptimizationResult;
 import com.iatradex.ml.MlEngine;
 import com.iatradex.ml.MlReport;
 import com.iatradex.ml.MlFeature;
+import com.iatradex.ml.MlFilterMode;
+import com.iatradex.ml.MlDecisionStats;
+import com.iatradex.ml.MlDecisionRecord;
 import com.iatradex.paper.PaperPerformanceAnalyzer;
 import com.iatradex.paper.PaperPerformanceStat;
 import com.iatradex.paper.PaperPerformanceSummary;
@@ -47,6 +50,7 @@ import com.iatradex.ui.PaperPerformanceRow;
 import com.iatradex.ui.ValidationRowView;
 import com.iatradex.ui.OptimizationRowView;
 import com.iatradex.ui.MlFeatureRow;
+import com.iatradex.ui.MlDecisionRow;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.animation.KeyFrame;
@@ -232,7 +236,7 @@ public final class IaTradexApp extends Application {
                         .toExternalForm()
         );
 
-        stage.setTitle("IA-TradeX v2.0.0");
+        stage.setTitle("IA-TradeX v2.2.3");
 
         try {
             stage.getIcons().add(
@@ -976,6 +980,15 @@ public final class IaTradexApp extends Application {
         periodFilter.setValue("3m");
         fixedWidth(periodFilter, 85);
 
+        ComboBox<MlFilterMode> mlModeFilter = new ComboBox<>();
+        mlModeFilter.getItems().addAll(
+                MlFilterMode.DISABLED,
+                MlFilterMode.INFORMATIVE,
+                MlFilterMode.CONFIRMATION
+        );
+        mlModeFilter.setValue(MlFilterMode.INFORMATIVE);
+        fixedWidth(mlModeFilter, 145);
+
         TextField symbolField = new TextField();
         symbolField.setPromptText("Ticker / símbolo");
         fixedWidth(symbolField, 155);
@@ -1002,8 +1015,9 @@ public final class IaTradexApp extends Application {
         scanStatus.getStyleClass().add("scanner-status");
 
         Label scoreHelp = new Label(
-                "Score: 0–100 según tendencia, fuerza, RSI, compatibilidad de estrategia, "
-                        + "señal actual, retorno histórico y volatilidad. No es una probabilidad."
+                "Score técnico: 0–100, no es probabilidad. ML Informativo muestra el modelo "
+                        + "sin bloquear señales. ML Confirmación exige FAVORABLE para que una "
+                        + "ENTRADA técnica quede habilitada."
         );
         scoreHelp.setWrapText(true);
         scoreHelp.getStyleClass().add("scanner-score-help");
@@ -1185,6 +1199,9 @@ public final class IaTradexApp extends Application {
                     "Escaneando 0/" + items.size() + "..."
             );
 
+            // Captura el control JavaFX antes de entrar al thread.
+            MlFilterMode scanMlMode = mlModeFilter.getValue();
+
             Task<List<ScannerResult>> task = new Task<>() {
                 @Override
                 protected List<ScannerResult> call() {
@@ -1193,7 +1210,10 @@ public final class IaTradexApp extends Application {
 
                     for (int i = 0; i < items.size(); i++) {
                         WatchlistItem item = items.get(i);
-                        results.add(scannerEngine.scan(item));
+                        results.add(scannerEngine.scan(
+                                item,
+                                scanMlMode
+                        ));
 
                         updateMessage(
                                 "Escaneando "
@@ -1378,6 +1398,7 @@ public final class IaTradexApp extends Application {
                 labeledSelector("Fuente", sourceFilter),
                 labeledSelector("Vela", timeframeFilter),
                 labeledSelector("Período", periodFilter),
+                labeledSelector("ML", mlModeFilter),
                 labeledSelector("Nuevo activo", symbolField),
                 addButton,
                 removeButton,
@@ -1540,6 +1561,24 @@ public final class IaTradexApp extends Application {
                 v.getValue().scoreProperty()
         );
 
+        TableColumn<ScannerRow, String> ml =
+                new TableColumn<>("ML");
+        ml.setCellValueFactory(v ->
+                v.getValue().mlProperty()
+        );
+
+        TableColumn<ScannerRow, String> mlProbability =
+                new TableColumn<>("ML %");
+        mlProbability.setCellValueFactory(v ->
+                v.getValue().mlProbabilityProperty()
+        );
+
+        TableColumn<ScannerRow, String> finalDecision =
+                new TableColumn<>("Decisión");
+        finalDecision.setCellValueFactory(v ->
+                v.getValue().finalDecisionProperty()
+        );
+
         TableColumn<ScannerRow, String> detail =
                 new TableColumn<>("Explicación");
         detail.setCellValueFactory(v ->
@@ -1554,7 +1593,10 @@ public final class IaTradexApp extends Application {
         strategy.setPrefWidth(130);
         signal.setPrefWidth(90);
         score.setPrefWidth(70);
-        detail.setPrefWidth(470);
+        ml.setPrefWidth(105);
+        mlProbability.setPrefWidth(75);
+        finalDecision.setPrefWidth(115);
+        detail.setPrefWidth(420);
 
         table.getColumns().addAll(
                 symbol,
@@ -1565,6 +1607,9 @@ public final class IaTradexApp extends Application {
                 strategy,
                 signal,
                 score,
+                ml,
+                mlProbability,
+                finalDecision,
                 detail
         );
 
@@ -1652,7 +1697,7 @@ public final class IaTradexApp extends Application {
         title.getStyleClass().add("about-title");
 
         Label subtitle = new Label(
-                "Análisis de mercados, backtesting y ML · 100% Java · v2.0.0"
+                "Análisis de mercados, backtesting y ML · 100% Java · v2.2.3"
         );
         subtitle.getStyleClass().add("about-subtitle");
 
@@ -1864,6 +1909,14 @@ public final class IaTradexApp extends Application {
                 "secondary-button"
         );
         exportButton.setDisable(true);
+
+        Button memoryButton = new Button(
+                "Memoria ML"
+        );
+        memoryButton.getStyleClass().add(
+                "secondary-button"
+        );
+        memoryButton.setOnAction(e -> showMlMemory());
 
         ProgressIndicator progress =
                 new ProgressIndicator();
@@ -2102,6 +2155,7 @@ public final class IaTradexApp extends Application {
                 statusLabel,
                 progress,
                 spacer,
+                memoryButton,
                 exportButton,
                 trainButton
         );
@@ -2212,6 +2266,306 @@ public final class IaTradexApp extends Application {
                 weight,
                 importance,
                 interpretation
+        );
+
+        return table;
+    }
+
+    private void showMlMemory() {
+        Stage window = new Stage();
+        window.initModality(Modality.NONE);
+        window.setTitle("IA-TradeX · Memoria ML");
+
+        Label title = new Label(
+                "Memoria de decisiones ML"
+        );
+        title.getStyleClass().add("paper-title");
+
+        Label subtitle = new Label(
+                "Registra decisiones y las comprueba automáticamente "
+                        + "cuando existen 5 velas posteriores."
+        );
+        subtitle.getStyleClass().add("paper-subtitle");
+
+        Label total = new Label();
+        Label pending = new Label();
+        Label accuracy = new Label();
+        Label favorableAccuracy = new Label();
+        Label noOperateAccuracy = new Label();
+        Label avgReturn = new Label();
+
+        FlowPane cards = new FlowPane(8, 8);
+        cards.setAlignment(Pos.CENTER_LEFT);
+
+        TableView<MlDecisionRow> table =
+                createMlDecisionTable();
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        Label note = new Label(
+                "Una decisión FAVORABLE se considera correcta si, 5 velas después, "
+                        + "el cierre superó +0,5%. NO OPERAR se considera correcta "
+                        + "si esa etiqueta positiva no ocurrió. OBSERVAR se resuelve "
+                        + "pero no entra en la tasa de aciertos."
+        );
+        note.setWrapText(true);
+        note.getStyleClass().add("paper-note");
+
+        Button refresh = new Button("Actualizar");
+        refresh.getStyleClass().add("primary-button");
+
+        Button export = new Button(
+                "Exportar memoria CSV"
+        );
+        export.getStyleClass().add(
+                "secondary-button"
+        );
+
+        Runnable refreshUi = () -> {
+            if (currentAnalysis != null) {
+                try {
+                    mlEngine.decisionService()
+                            .resolveWithAnalysis(
+                                    currentAnalysis
+                            );
+                } catch (Exception ignored) {
+                }
+            }
+
+            MlDecisionStats stats =
+                    mlEngine.decisionService().stats();
+
+            total.setText(
+                    stats.total()
+                            + " total · "
+                            + stats.resolved()
+                            + " resueltas"
+            );
+            pending.setText(
+                    String.valueOf(stats.pending())
+            );
+            accuracy.setText(
+                    stats.actionableResolved() == 0
+                            ? "—"
+                            : String.format(
+                                    "%.1f%%",
+                                    stats.accuracyPct()
+                            )
+            );
+            favorableAccuracy.setText(
+                    stats.favorableResolved() == 0
+                            ? "—"
+                            : String.format(
+                                    "%.1f%%",
+                                    stats.favorableAccuracyPct()
+                            )
+            );
+            noOperateAccuracy.setText(
+                    stats.noOperateResolved() == 0
+                            ? "—"
+                            : String.format(
+                                    "%.1f%%",
+                                    stats.noOperateAccuracyPct()
+                            )
+            );
+            avgReturn.setText(
+                    String.format(
+                            "%+.2f%%",
+                            stats.avgForwardReturnPct()
+                    )
+            );
+
+            cards.getChildren().setAll(
+                    performanceMetric("DECISIONES", total),
+                    performanceMetric("PENDIENTES", pending),
+                    performanceMetric("ACIERTO ACCIONABLE", accuracy),
+                    performanceMetric("FAVORABLE", favorableAccuracy),
+                    performanceMetric("NO OPERAR", noOperateAccuracy),
+                    performanceMetric("RETORNO 5 VELAS MEDIO", avgReturn)
+            );
+
+            table.setItems(
+                    FXCollections.observableArrayList(
+                            mlEngine.decisionService()
+                                    .decisions()
+                                    .stream()
+                                    .map(MlDecisionRow::new)
+                                    .toList()
+                    )
+            );
+        };
+
+        refresh.setOnAction(e -> refreshUi.run());
+
+        export.setOnAction(e -> {
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle(
+                    "Exportar memoria Machine Learning"
+            );
+            chooser.setInitialFileName(
+                    "ia-tradex-ml-memory.csv"
+            );
+            chooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter(
+                            "CSV",
+                            "*.csv"
+                    )
+            );
+
+            java.io.File file =
+                    chooser.showSaveDialog(window);
+
+            if (file == null) {
+                return;
+            }
+
+            try {
+                mlEngine.decisionService()
+                        .exportCsv(file.toPath());
+            } catch (Exception ex) {
+                showPaperError(ex.getMessage());
+            }
+        });
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox actions = new HBox(
+                10,
+                spacer,
+                refresh,
+                export
+        );
+        actions.setAlignment(Pos.CENTER_RIGHT);
+
+        VBox root = new VBox(
+                12,
+                new VBox(2, title, subtitle),
+                cards,
+                note,
+                table,
+                actions
+        );
+        root.setPadding(new Insets(18));
+        root.getStyleClass().addAll(
+                "paper-root",
+                "ml-memory-root"
+        );
+
+        Scene scene = new Scene(
+                root,
+                1320,
+                760
+        );
+        scene.getStylesheets().add(
+                IaTradexApp.class
+                        .getResource("/com/iatradex/theme.css")
+                        .toExternalForm()
+        );
+
+        window.setScene(scene);
+        window.setMinWidth(920);
+        window.setMinHeight(620);
+
+        try {
+            window.getIcons().add(
+                    new Image(
+                            IaTradexApp.class.getResourceAsStream(
+                                    "/com/iatradex/icon.png"
+                            )
+                    )
+            );
+        } catch (Exception ignored) {
+        }
+
+        refreshUi.run();
+        window.show();
+    }
+
+    private TableView<MlDecisionRow> createMlDecisionTable() {
+        TableView<MlDecisionRow> table =
+                new TableView<>();
+
+        table.setColumnResizePolicy(
+                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
+        );
+        table.getStyleClass().add(
+                "ml-memory-table"
+        );
+
+        TableColumn<MlDecisionRow, String> time =
+                new TableColumn<>("Fecha");
+        time.setCellValueFactory(v ->
+                v.getValue().timeProperty()
+        );
+
+        TableColumn<MlDecisionRow, String> symbol =
+                new TableColumn<>("Activo");
+        symbol.setCellValueFactory(v ->
+                v.getValue().symbolProperty()
+        );
+
+        TableColumn<MlDecisionRow, String> timeframe =
+                new TableColumn<>("Vela");
+        timeframe.setCellValueFactory(v ->
+                v.getValue().timeframeProperty()
+        );
+
+        TableColumn<MlDecisionRow, String> decision =
+                new TableColumn<>("Decisión");
+        decision.setCellValueFactory(v ->
+                v.getValue().decisionProperty()
+        );
+
+        TableColumn<MlDecisionRow, String> probability =
+                new TableColumn<>("ML %");
+        probability.setCellValueFactory(v ->
+                v.getValue().probabilityProperty()
+        );
+
+        TableColumn<MlDecisionRow, String> status =
+                new TableColumn<>("Estado");
+        status.setCellValueFactory(v ->
+                v.getValue().statusProperty()
+        );
+
+        TableColumn<MlDecisionRow, String> forwardReturn =
+                new TableColumn<>("Retorno +5");
+        forwardReturn.setCellValueFactory(v ->
+                v.getValue().forwardReturnProperty()
+        );
+
+        TableColumn<MlDecisionRow, String> actual =
+                new TableColumn<>("Resultado");
+        actual.setCellValueFactory(v ->
+                v.getValue().actualProperty()
+        );
+
+        TableColumn<MlDecisionRow, String> correct =
+                new TableColumn<>("Acertó");
+        correct.setCellValueFactory(v ->
+                v.getValue().correctProperty()
+        );
+
+        time.setPrefWidth(150);
+        symbol.setPrefWidth(100);
+        timeframe.setPrefWidth(70);
+        decision.setPrefWidth(110);
+        probability.setPrefWidth(80);
+        status.setPrefWidth(90);
+        forwardReturn.setPrefWidth(100);
+        actual.setPrefWidth(110);
+        correct.setPrefWidth(75);
+
+        table.getColumns().addAll(
+                time,
+                symbol,
+                timeframe,
+                decision,
+                probability,
+                status,
+                forwardReturn,
+                actual,
+                correct
         );
 
         return table;
@@ -4323,6 +4677,19 @@ public final class IaTradexApp extends Application {
                 String.format("%.2f", current.takeProfitPct())
         );
 
+        ComboBox<MlFilterMode> portfolioMlMode = new ComboBox<>();
+        portfolioMlMode.getItems().addAll(
+                MlFilterMode.DISABLED,
+                MlFilterMode.INFORMATIVE,
+                MlFilterMode.CONFIRMATION
+        );
+        portfolioMlMode.setValue(
+                current.mlMode() == null
+                        ? MlFilterMode.DISABLED
+                        : current.mlMode()
+        );
+        fixedWidth(portfolioMlMode, 145);
+
         for (TextField field : List.of(
                 minScore,
                 maxPositions,
@@ -4400,6 +4767,15 @@ public final class IaTradexApp extends Application {
                 new Label("Take Profit %"),
                 take
         );
+        configGrid.addRow(
+                5,
+                new Label("Filtro ML"),
+                portfolioMlMode,
+                new Label("Modo"),
+                new Label(
+                        "Confirmación bloquea si ML no es FAVORABLE"
+                )
+        );
 
         ListView<String> ranking = new ListView<>();
         ranking.getStyleClass().add("portfolio-ranking");
@@ -4412,7 +4788,7 @@ public final class IaTradexApp extends Application {
 
         Label rankingHelp = new Label(
                 "Se actualiza con cada ciclo de Cartera AUTO. "
-                        + "Muestra Score, señal, estrategia y decisión."
+                        + "Muestra Score técnico, señal, ML y decisión final."
         );
         rankingHelp.setWrapText(true);
         rankingHelp.getStyleClass().add("paper-note");
@@ -4486,12 +4862,22 @@ public final class IaTradexApp extends Application {
                                     .stream()
                                     .map(candidate ->
                                             String.format(
-                                                    "%s · %s · Score %d · %s · %s · %s",
+                                                    "%s · %s · Score %d · %s · %s · ML %s%s · %s",
                                                     candidate.symbol(),
                                                     candidate.market(),
                                                     candidate.score(),
                                                     candidate.signal(),
                                                     candidate.strategy(),
+                                                    candidate.mlDecision() == null
+                                                            ? "OFF"
+                                                            : candidate.mlDecision(),
+                                                    candidate.mlProbabilityPct() == null
+                                                            ? ""
+                                                            : " "
+                                                            + String.format(
+                                                                    "%.1f%%",
+                                                                    candidate.mlProbabilityPct()
+                                                            ),
                                                     candidate.decision()
                                             )
                                     )
@@ -4522,10 +4908,10 @@ public final class IaTradexApp extends Application {
 
         Label explanation = new Label(
                 "Cada 60 segundos se escanean todas las watchlists. "
-                        + "Para abrir una posición se exige señal ENTRADA, "
-                        + "Score mínimo, espacio en el límite total y en el "
-                        + "límite del mercado, efectivo disponible y margen "
-                        + "de riesgo global. ARS y USD se controlan por separado."
+                        + "En modo ML Confirmación, además de ENTRADA técnica y Score mínimo, "
+                        + "el modelo debe devolver FAVORABLE. Si ML no tiene datos suficientes "
+                        + "la entrada se bloquea de forma conservadora. Los límites de capital, "
+                        + "mercado y riesgo siguen teniendo prioridad."
         );
         explanation.setWrapText(true);
         explanation.getStyleClass().add("paper-note");
@@ -4590,7 +4976,8 @@ public final class IaTradexApp extends Application {
                                 parsePaperNumber(
                                         take.getText(),
                                         true
-                                )
+                                ),
+                                portfolioMlMode.getValue()
                         );
 
                 validatePortfolioAutoConfig(config);
@@ -4634,7 +5021,8 @@ public final class IaTradexApp extends Application {
                                 + config.minScore()
                                 + " · máximo "
                                 + config.maxPositions()
-                                + " posiciones"
+                                + " posiciones · ML "
+                                + config.mlMode().displayName()
                                 : "Cartera AUTO pausada"
                 );
 
@@ -5299,6 +5687,12 @@ public final class IaTradexApp extends Application {
 
     private void render(AnalysisResult result) {
         currentAnalysis = result;
+
+        try {
+            mlEngine.decisionService().resolveWithAnalysis(result);
+        } catch (Exception ignored) {
+            // La memoria ML no debe bloquear el análisis principal.
+        }
 
         TechnicalSnapshot technical = result.technical();
 

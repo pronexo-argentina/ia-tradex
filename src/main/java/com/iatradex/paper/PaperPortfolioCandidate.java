@@ -7,5 +7,7 @@ public record PaperPortfolioCandidate(
         String signal,
         String strategy,
         String regime,
+        String mlDecision,
+        Double mlProbabilityPct,
         String decision
 ) {}

@@ -1,4 +1,4 @@
-# Arquitectura de IA-TradeX v2.0.0
+# Arquitectura de IA-TradeX v2.2.0
 
 IA-TradeX es una aplicación de escritorio 100% Java.
 
@@ -147,3 +147,55 @@ La etiqueta usa un horizonte fijo de 5 velas y un retorno futuro superior a 0,5%
 Las muestras de entrenamiento cuyo horizonte de etiqueta invade OOS se descartan para evitar leakage.
 
 La capa ML permanece desacoplada de la ejecución automática.
+
+
+### Integración ML con Scanner
+
+`ScannerEngine` acepta un `MlFilterMode`:
+
+- `DISABLED`
+- `INFORMATIVE`
+- `CONFIRMATION`
+
+El análisis de mercado se ejecuta una sola vez por activo. Si ML está activo, `MlEngine` trabaja sobre el mismo `AnalysisResult`, evitando una segunda descarga de datos.
+
+`ScannerResult` conserva separadamente:
+
+- señal técnica;
+- Score técnico;
+- decisión ML;
+- probabilidad ML;
+- decisión final;
+- explicación ML.
+
+La separación impide mezclar semánticamente el Score de reglas con la probabilidad estadística.
+
+### Integración ML con Cartera AUTO
+
+`PaperPortfolioAutoConfig` persiste `MlFilterMode`.
+
+En modo `CONFIRMATION`, `PaperPortfolioAutoEngine` requiere `mlDecision = FAVORABLE` antes de continuar con position sizing, límites y riesgo.
+
+El filtro ML se aplica solo a entradas. La gestión de posiciones existentes conserva Stop Loss, Take Profit y salidas por estrategia.
+
+
+### Memoria ML
+
+`MlDecisionService` persiste decisiones generadas por el modelo y las resuelve cuando existen suficientes velas posteriores.
+
+Componentes:
+
+- `MlDecisionRecord`: observación individual;
+- `MlDecisionState`: contenedor persistente;
+- `MlDecisionStats`: agregados de seguimiento;
+- `MlDecisionService`: deduplicación, resolución, estadísticas, CSV y persistencia atómica.
+
+Clave de deduplicación:
+
+```text
+marketType | source | symbol | timeframe | decisionTimestamp
+```
+
+La resolución usa únicamente velas cerradas y soporta ventanas históricas móviles buscando la primera vela posterior al timestamp original cuando la vela de decisión ya no está incluida.
+
+La memoria ML no se utiliza todavía como mecanismo de autoajuste del modelo.

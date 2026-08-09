@@ -1,4 +1,4 @@
-# Manual de usuario · IA-TradeX v2.0.0
+# Manual de usuario · IA-TradeX v2.2.3
 
 Este manual está pensado para una persona sin experiencia previa en trading.
 
@@ -19,6 +19,8 @@ Acciones principales:
 - **Analizar mercado**
 - **Scanner**
 - **Performance**
+- **Validación**
+- **IA / ML**
 - **Paper Trading**
 
 En macOS, **Acerca de IA-TradeX** está en el menú nativo superior de la aplicación.
@@ -624,7 +626,7 @@ Después de v2.0 conviene concentrarse en validar el modelo antes de darle contr
 
 ## 27. Acerca de
 
-**IA-TradeX v2.0.0**
+**IA-TradeX v2.2.3**
 
 **Autor:** Juan Manuel De Castro  
 **Email:** jm@pronexo.com  
@@ -870,3 +872,340 @@ En activos diarios, `1y` será generalmente más útil que `3m`.
 
 Si la ventana indica que faltan muestras Train/OOS, elegí más histórico.
 
+
+
+## 34. Scanner con ML
+
+Desde v2.1 el Scanner tiene un selector **ML**.
+
+### Desactivado
+
+No entrena el modelo durante el Scanner.
+
+Ventaja: es el modo más rápido y reproduce el comportamiento técnico tradicional.
+
+### Informativo
+
+Entrena/evalúa ML para cada activo y muestra:
+
+```text
+ML
+ML %
+Decisión
+```
+
+La entrada técnica no se bloquea.
+
+Ejemplo:
+
+```text
+Señal: ENTRADA
+Score: 81
+ML: NO OPERAR
+ML %: 39,4%
+Decisión: ENTRADA
+```
+
+La decisión sigue siendo técnica porque el modo es solamente informativo.
+
+### Confirmación
+
+Una `ENTRADA` técnica necesita además:
+
+```text
+ML = FAVORABLE
+```
+
+Ejemplo:
+
+```text
+Señal: ENTRADA
+Score: 81
+ML: OBSERVAR
+Decisión: BLOQUEADA ML
+```
+
+Si no existe suficiente histórico para entrenar/evaluar el modelo:
+
+```text
+ML = NO DISPONIBLE
+```
+
+En modo Confirmación se bloquea la entrada.
+
+## 35. Cartera AUTO con filtro ML
+
+Abrí:
+
+```text
+Paper Trading → Cartera AUTO
+```
+
+La configuración incluye **Filtro ML**:
+
+```text
+Desactivado
+Informativo
+Confirmación
+```
+
+La elección se guarda dentro del estado de Paper Trading.
+
+### Desactivado
+
+No usa ML para decidir entradas.
+
+### Informativo
+
+Calcula ML, lo guarda en el ranking y lo incluye en el log de compra, pero no bloquea.
+
+### Confirmación
+
+Cartera AUTO exige:
+
+1. `ENTRADA` técnica;
+2. Score mínimo;
+3. `ML = FAVORABLE`;
+4. no duplicar posición;
+5. respetar límites de mercado;
+6. respetar capital;
+7. respetar riesgo global.
+
+Si cualquiera falla, no abre la posición simulada.
+
+### Qué NO cambia
+
+ML no reemplaza:
+
+- Stop Loss;
+- Take Profit;
+- límites de riesgo;
+- límites de exposición;
+- salidas por señal de estrategia.
+
+## 36. Interpretar Score y ML correctamente
+
+No deben sumarse como si fueran la misma métrica.
+
+```text
+Score 80 + ML 70% ≠ 150
+```
+
+El Score técnico es una puntuación de reglas.
+
+ML % es la salida probabilística interna de un modelo entrenado sobre una etiqueta determinada.
+
+Una forma correcta de leerlo sería:
+
+```text
+Score técnico: 82
+Señal: ENTRADA
+ML: FAVORABLE
+ML %: 67,8%
+Decisión: ENTRADA
+```
+
+## 37. Rendimiento del Scanner con ML
+
+El modo ML requiere entrenar/evaluar un modelo por activo escaneado, por lo que puede ser más lento que el modo Desactivado.
+
+El procesamiento continúa ejecutándose en segundo plano para evitar bloquear la interfaz.
+
+Para Argentina diaria, períodos cortos pueden no contener suficientes muestras para ML. En esos casos conviene probar `6m` o `1y`.
+
+
+
+## 38. Memoria ML
+
+Abrí:
+
+```text
+IA / ML → Memoria ML
+```
+
+La memoria responde una pregunta distinta de las métricas OOS del entrenamiento:
+
+> ¿Qué pasó después de las decisiones que el modelo fue tomando realmente mientras usabas IA-TradeX?
+
+### Registro de una decisión
+
+Cada decisión se guarda una sola vez por vela, activo, fuente y timeframe.
+
+Ejemplo:
+
+```text
+08/08/2026 16:00
+BTC/USDT
+1h
+FAVORABLE
+67,3%
+PENDING
+```
+
+Volver a escanear la misma vela no crea duplicados.
+
+### Horizonte
+
+La v2.2 conserva el objetivo de v2.0:
+
+```text
+5 velas
++0,5%
+```
+
+Después de cinco velas se calcula:
+
+```text
+(cierre futuro / cierre de referencia - 1) × 100
+```
+
+### Estados
+
+**PENDING**  
+Todavía no hay cinco velas posteriores disponibles.
+
+**RESOLVED**  
+Ya existe información suficiente para conocer la etiqueta real.
+
+### Resultado POSITIVA
+
+Significa:
+
+```text
+retorno a 5 velas > +0,5%
+```
+
+`NO POSITIVA` significa que no superó ese umbral.
+
+No significa necesariamente que el precio haya caído: podría haber subido menos de 0,5%.
+
+### Acierto
+
+**FAVORABLE** acierta si el resultado es POSITIVA.
+
+**NO OPERAR** acierta si el resultado es NO POSITIVA.
+
+**OBSERVAR** no tiene una predicción binaria accionable, por lo que su columna Acierto queda `—`.
+
+## 39. Estadísticas de Memoria ML
+
+La pantalla muestra:
+
+- **Decisiones:** total y resueltas.
+- **Pendientes:** decisiones esperando cinco velas.
+- **Acierto accionable:** FAVORABLE + NO OPERAR resueltas.
+- **Favorable:** tasa de acierto de las decisiones FAVORABLE.
+- **No operar:** tasa de acierto de NO OPERAR.
+- **Retorno 5 velas medio:** promedio de todas las observaciones resueltas.
+
+Una muestra pequeña no debe interpretarse como evidencia suficiente.
+
+## 40. Cuándo se actualiza la memoria
+
+IA-TradeX intenta resolver decisiones cuando vuelve a disponer de velas nuevas del mismo activo/timeframe.
+
+Esto ocurre al:
+
+- analizar nuevamente el activo;
+- ejecutar Scanner con ML;
+- ejecutar Cartera AUTO con ML.
+
+No necesita que la aplicación permanezca abierta durante cinco velas.
+
+## 41. Persistencia de Memoria ML
+
+Archivos:
+
+```text
+~/.ia-tradex/ml-decisions.json
+~/.ia-tradex/ml-decisions.json.bak
+```
+
+Se conserva un máximo de 2000 decisiones recientes para evitar crecimiento ilimitado.
+
+## 42. Exportar Memoria ML
+
+Presioná:
+
+```text
+Exportar memoria CSV
+```
+
+El archivo incluye decisión original, probabilidad, métricas del modelo, resultado futuro, retorno observado y acierto.
+
+## 43. Qué todavía no mide la Memoria ML
+
+La tasa de aciertos de v2.2 mide la etiqueta:
+
+```text
+retorno a 5 velas > +0,5%
+```
+
+Todavía no mide directamente:
+
+- P&L que habría producido una operación;
+- efecto de Stop Loss;
+- efecto de Take Profit;
+- comisión;
+- slippage;
+- rendimiento por régimen;
+- rendimiento por mercado.
+
+Ese cruce con Paper Trading es una etapa posterior.
+
+
+
+## 44. Tema violeta oscuro
+
+Desde v2.2.1 IA-TradeX utiliza una interfaz violeta oscuro.
+
+El cambio afecta:
+
+- fondo general;
+- paneles;
+- selectores;
+- botones;
+- tablas;
+- selección de filas;
+- gráficos;
+- bordes y elementos secundarios.
+
+Los colores de significado operativo se mantienen:
+
+- verde para estados positivos;
+- amarillo para advertencias;
+- rojo para estados negativos o de riesgo.
+
+No cambia ninguna regla de trading, backtest, Machine Learning ni Paper Trading.
+
+## 45. Paleta violeta de referencia
+
+En v2.2.2 se refinó el tema violeta oscuro usando una referencia más púrpura y azulada.
+
+La base visual utiliza tonos cercanos a:
+
+```text
+#190638
+#2E0B49
+#45136D
+#7046D3
+#9B8BEA
+#A3BCE8
+```
+
+No cambia ninguna función de trading, Machine Learning, Scanner, Validación ni Paper Trading.
+
+## 46. Tema Llama Violeta
+
+Desde v2.2.3 la interfaz se orienta visualmente al concepto Llama Violeta.
+
+Se utilizan:
+
+- fondos violeta casi negro;
+- paneles púrpura profundo;
+- bordes violeta;
+- botones en violeta eléctrico;
+- acentos magenta-violeta;
+- textos destacados en lavanda luminosa.
+
+La paleta es estética y simbólica. No modifica la lógica del sistema ni tiene relación con las decisiones de trading.

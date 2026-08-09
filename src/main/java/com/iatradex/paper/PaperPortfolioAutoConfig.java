@@ -1,5 +1,7 @@
 package com.iatradex.paper;
 
+import com.iatradex.ml.MlFilterMode;
+
 public record PaperPortfolioAutoConfig(
         boolean enabled,
         int minScore,
@@ -11,7 +13,8 @@ public record PaperPortfolioAutoConfig(
         double riskPerTradePct,
         double maxCapitalPerTradePct,
         double stopLossPct,
-        double takeProfitPct
+        double takeProfitPct,
+        MlFilterMode mlMode
 ) {
     public static PaperPortfolioAutoConfig disabled() {
         return new PaperPortfolioAutoConfig(
@@ -25,7 +28,8 @@ public record PaperPortfolioAutoConfig(
                 1.0,
                 25.0,
                 2.0,
-                4.0
+                4.0,
+                MlFilterMode.DISABLED
         );
     }
 
@@ -59,7 +63,10 @@ public record PaperPortfolioAutoConfig(
                         : stopLossPct,
                 takeProfitPct <= 0.0
                         ? defaults.takeProfitPct
-                        : takeProfitPct
+                        : takeProfitPct,
+                mlMode == null
+                        ? defaults.mlMode
+                        : mlMode
         );
     }
 
